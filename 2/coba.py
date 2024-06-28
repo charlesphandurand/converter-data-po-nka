@@ -19,7 +19,7 @@ def read_excel_file(file_path):
         app.quit()
         
         # Pastikan kolom yang dibutuhkan ada
-        required_columns = ["KODE AGLIS", "SALESMAN"]
+        required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         for col in required_columns:
             if col not in data.columns:
                 logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet 'KODE ITEM alfa'")
@@ -47,7 +47,7 @@ def process_edi_file(edi_file, excel_file, output_directory):
     try:
         with open(edi_file, 'r') as f:
             edi_content = f.read()
-        edi_lines = edi_content.replace('\n', ' ').split()
+        edi_lines = edi_content.split('\n')
         logging.info(f"File EDI berhasil dimuat. Total baris: {len(edi_lines)}")
     except Exception as e:
         logging.error(f"Error saat memuat file EDI: {str(e)}")
@@ -55,31 +55,45 @@ def process_edi_file(edi_file, excel_file, output_directory):
 
     output_lines = []
     output_filename = None
+    pohdr_line = None
+    lin_line = None
+
     for line in edi_lines:
-        parts = line.split('|')
+        parts = line.strip().split('|')
         if parts[0] == 'POHDR':
-            try:
-                edi_1 = parts[1]  # 1GZ1POF24004291
-                output_filename = f"{edi_1}.txt"
-                edi_3 = parts[2]  # 20240619 (tanggal yang kita inginkan)
-                edi_6 = parts[5]  # 1GZ1 (kode untuk VLOOKUP)
+            pohdr_line = parts
+        elif parts[0] == 'LIN':
+            lin_line = parts
+            break  # We only need the first LIN line
 
-                # VLOOKUP untuk SALESMAN dan KODE AGLIS
-                kode_sales = df_excel.loc[df_excel['KODE AGLIS'] == edi_6, 'SALESMAN'].values
-                kode_sales = kode_sales[0] if len(kode_sales) > 0 else 'Not Found'
-                
-                kode_aglis = df_excel.loc[df_excel['KODE AGLIS'] == edi_6, 'KODE AGLIS'].values
-                kode_aglis = kode_aglis[0] if len(kode_aglis) > 0 else 'Not Found'
+    if pohdr_line and lin_line:
+        try:
+            edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
+            output_filename = f"{edi_1}.txt"
+            edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
+            edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
 
-                # Format output line
-                output_line = f"{edi_1};10300732;{kode_sales};{edi_3};{kode_aglis};20"
-                output_lines.append(output_line)
-                logging.debug(f"Baris output: {output_line}")
-            except Exception as e:
-                logging.error(f"Error saat memproses baris POHDR: {str(e)}")
-            break  # Keluar dari loop setelah memproses POHDR
+            logging.debug(f"POHDR: {pohdr_line}")
+            logging.debug(f"LIN: {lin_line}")
+            logging.debug(f"EDI_1: {edi_1}, EDI_3: {edi_3}, EDI_6_LIN: {edi_6_lin}")
 
-    if output_filename:
+            # VLOOKUP untuk SALESMAN
+            salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+            salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
+
+            # VLOOKUP untuk KODE AGLIS
+            kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+            kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
+
+            # Format output line
+            output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};20"
+            output_lines.append(output_line)
+            logging.debug(f"Baris output: {output_line}")
+        except Exception as e:
+            logging.error(f"Error saat memproses baris: {str(e)}")
+            logging.exception("Traceback:")
+
+    if output_filename and output_lines:
         output_file = os.path.join(output_directory, output_filename)
         # Tulis ke file output
         try:
@@ -88,6 +102,8 @@ def process_edi_file(edi_file, excel_file, output_directory):
             logging.info(f"File output berhasil ditulis. Total baris: {len(output_lines)}")
         except Exception as e:
             logging.error(f"Error saat menulis file output: {str(e)}")
+    else:
+        logging.warning("Tidak ada data yang diproses atau nama file output tidak ditentukan.")
     
     return output_filename
 
