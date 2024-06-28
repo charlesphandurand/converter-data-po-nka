@@ -1,4 +1,5 @@
-import PySimpleGUI as sg
+import tkinter as tk
+from tkinter import filedialog, messagebox
 import pandas as pd
 import os
 import xlwings as xw
@@ -107,37 +108,57 @@ def process_edi_file(edi_file, excel_file, output_directory):
     
     return output_filename
 
-# Kode GUI
-layout = [
-    [sg.Text("File EDI:"), sg.Input(), sg.FileBrowse(key="-EDI-")],
-    [sg.Text("File Excel Master Data:"), sg.Input(), sg.FileBrowse(key="-EXCEL-")],
-    [sg.Text("Direktori Output:"), sg.Input(), sg.FolderBrowse(key="-OUTPUT-DIR-")],
-    [sg.Button("Proses"), sg.Button("Keluar")]
-]
+def browse_file(entry):
+    filename = filedialog.askopenfilename()
+    entry.delete(0, tk.END)
+    entry.insert(0, filename)
 
-window = sg.Window("Konverter EDI ke TXT", layout)
+def browse_directory(entry):
+    directory = filedialog.askdirectory()
+    entry.delete(0, tk.END)
+    entry.insert(0, directory)
 
-while True:
-    event, values = window.read()
-    if event == sg.WINDOW_CLOSED or event == "Keluar":
-        break
-    elif event == "Proses":
-        edi_file = values["-EDI-"]
-        excel_file = values["-EXCEL-"]
-        output_dir = values["-OUTPUT-DIR-"]
-        
-        if not edi_file or not excel_file or not output_dir:
-            sg.popup("Silakan pilih semua file dan direktori yang diperlukan.")
+def process_files():
+    edi_file = edi_entry.get()
+    excel_file = excel_entry.get()
+    output_dir = output_entry.get()
+
+    if not edi_file or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih semua file dan direktori yang diperlukan.")
+        return
+
+    try:
+        output_filename = process_edi_file(edi_file, excel_file, output_dir)
+        if output_filename:
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_filename}")
         else:
-            try:
-                output_filename = process_edi_file(edi_file, excel_file, output_dir)
-                if output_filename:
-                    sg.popup(f"Konversi berhasil! File output: {output_filename}")
-                else:
-                    sg.popup("Konversi gagal. Silakan periksa log untuk detail.")
-            except Exception as e:
-                sg.popup_error(f"Terjadi kesalahan: {str(e)}")
-            finally:
-                print("Silakan periksa console untuk log detail.")
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
 
-window.close()
+# Buat window utama
+root = tk.Tk()
+root.title("Konverter EDI ke TXT")
+
+# Buat dan susun elemen-elemen GUI
+tk.Label(root, text="File EDI:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+edi_entry = tk.Entry(root, width=50)
+edi_entry.grid(row=0, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_file(edi_entry)).grid(row=0, column=2, padx=5, pady=5)
+
+tk.Label(root, text="File Excel Master Data:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
+excel_entry = tk.Entry(root, width=50)
+excel_entry.grid(row=1, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_file(excel_entry)).grid(row=1, column=2, padx=5, pady=5)
+
+tk.Label(root, text="Direktori Output:").grid(row=2, column=0, sticky="e", padx=5, pady=5)
+output_entry = tk.Entry(root, width=50)
+output_entry.grid(row=2, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_directory(output_entry)).grid(row=2, column=2, padx=5, pady=5)
+
+tk.Button(root, text="Proses", command=process_files).grid(row=3, column=1, pady=10)
+
+# Jalankan aplikasi
+root.mainloop()
