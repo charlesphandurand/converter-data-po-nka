@@ -1,1 +1,1 @@
-1GZ1POF24004291;10300732;vlookup dengan membandingkan data excel di sheet "KODE ITEM alfa" antara data edi ke-6 pada baris 2 yang dijadikan sebagai kolom "BARCODE" apabila sama muncul data pada kolom "SALESMAN" di baris barcode tadi;20240619;vlookup dengan membandingkan data excel di sheet "KODE ITEM alfa" antara data edi ke-6 pada baris 2 yang dijadikan sebagai kolom "BARCODE" apabila sama muncul data pada kolom "KODE AGLIS" di baris barcode tadi;20
+1GZ1POF24004291;10300732;103023;20240619;204551026;20

@@ -1,0 +1,4 @@
+1. gabung jadi 1 file atau memasukkan langsung jadi batch
+2. kondisi ketika ada lebih dari 1 barang, maka yang dihitung adalah kelipatan dari 3 baris
+
+

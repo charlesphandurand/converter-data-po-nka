@@ -86,8 +86,14 @@ def process_edi_file(edi_file, excel_file, output_directory):
             kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
             kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
 
-            # Format output line
-            output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};20"
+            # Calculate the last value
+            lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0  # Data .edi urutan ke-3 baris 2
+            lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0  # Data .edi urutan ke-9 baris 2
+
+            calculated_value = lin_value_1 * lin_value_2
+
+            # Format output line with the calculated value
+            output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};{calculated_value}"
             output_lines.append(output_line)
             logging.debug(f"Baris output: {output_line}")
         except Exception as e:
