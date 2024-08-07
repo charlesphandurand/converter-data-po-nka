@@ -57,45 +57,49 @@ def process_edi_file(edi_file, excel_file, output_directory):
     output_lines = []
     output_filename = None
     pohdr_line = None
-    lin_line = None
+    lin_lines = []
 
     for line in edi_lines:
         parts = line.strip().split('|')
         if parts[0] == 'POHDR':
             pohdr_line = parts
         elif parts[0] == 'LIN':
-            lin_line = parts
-            break  # We only need the first LIN line
+            lin_lines.append(parts)
+        elif parts[0] == 'TRL':
+            break  # Stop processing when we reach TRL
 
-    if pohdr_line and lin_line:
+    if pohdr_line and lin_lines:
         try:
             edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
             output_filename = f"{edi_1}.txt"
             edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
-            edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
 
-            logging.debug(f"POHDR: {pohdr_line}")
-            logging.debug(f"LIN: {lin_line}")
-            logging.debug(f"EDI_1: {edi_1}, EDI_3: {edi_3}, EDI_6_LIN: {edi_6_lin}")
+            for lin_line in lin_lines:
+                edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
 
-            # VLOOKUP untuk SALESMAN
-            salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-            salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
+                logging.debug(f"POHDR: {pohdr_line}")
+                logging.debug(f"LIN: {lin_line}")
+                logging.debug(f"EDI_1: {edi_1}, EDI_3: {edi_3}, EDI_6_LIN: {edi_6_lin}")
 
-            # VLOOKUP untuk KODE AGLIS
-            kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-            kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
+                # VLOOKUP untuk SALESMAN
+                salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+                salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
 
-            # Calculate the last value
-            lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0  # Data .edi urutan ke-3 baris 2
-            lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0  # Data .edi urutan ke-9 baris 2
+                # VLOOKUP untuk KODE AGLIS
+                kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+                kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
 
-            calculated_value = lin_value_1 * lin_value_2
+                # Calculate the last value
+                lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0  # Data .edi urutan ke-3 baris LIN
+                lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0  # Data .edi urutan ke-9 baris LIN
 
-            # Format output line with the calculated value
-            output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};{calculated_value}"
-            output_lines.append(output_line)
-            logging.debug(f"Baris output: {output_line}")
+                calculated_value = lin_value_1 * lin_value_2
+
+                # Format output line with the calculated value
+                output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                output_lines.append(output_line)
+                logging.debug(f"Baris output: {output_line}")
+
         except Exception as e:
             logging.error(f"Error saat memproses baris: {str(e)}")
             logging.exception("Traceback:")
@@ -146,7 +150,7 @@ def process_files():
 
 # Buat window utama
 root = tk.Tk()
-root.title("Konverter EDI ke TXT")
+root.title("Konverter EDI ke TXT by Charles")
 
 # Buat dan susun elemen-elemen GUI
 tk.Label(root, text="File EDI:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
