@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from tkinter import ttk
 import pandas as pd
 import os
 import xlwings as xw
@@ -32,7 +33,7 @@ def read_excel_file(file_path):
         logging.error(f"Error membaca file Excel: {str(e)}")
         return None
 
-def process_edi_file(edi_file, df_excel):
+def process_edi_file(edi_file, df_excel, customer_code):
     try:
         with open(edi_file, 'r') as f:
             edi_content = f.read()
@@ -78,7 +79,7 @@ def process_edi_file(edi_file, df_excel):
                 calculated_value = lin_value_1 * lin_value_2
 
                 # Format output line
-                output_line = f"{edi_1};10300732;{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
                 output_lines.append(output_line)
 
         except Exception as e:
@@ -88,12 +89,13 @@ def process_edi_file(edi_file, df_excel):
     return output_lines
 
 def process_files():
+    customer_code = customer_var.get().split(' - ')[0]  # Ambil kode customer dari pilihan dropdown
     edi_files = edi_entry.get().split(';')  # Assuming multiple files are separated by semicolons
     excel_file = excel_entry.get()
     output_dir = output_entry.get()
 
-    if not edi_files or not excel_file or not output_dir:
-        messagebox.showerror("Error", "Silakan pilih semua file dan direktori yang diperlukan.")
+    if not customer_code or not edi_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
         return
 
     try:
@@ -104,7 +106,7 @@ def process_files():
 
         all_output_lines = []
         for edi_file in edi_files:
-            output_lines = process_edi_file(edi_file, df_excel)
+            output_lines = process_edi_file(edi_file, df_excel, customer_code)
             if output_lines:
                 all_output_lines.extend(output_lines)
 
@@ -132,25 +134,47 @@ def browse_directory(entry):
 
 # Buat window utama
 root = tk.Tk()
-root.title("Konverter EDI ke TXT by Charles")
+root.title("Konverter Data PO Alfamart by Charles")
+
+# Daftar customer codes
+customer_code_options = [
+    "10102225 - PBJ1 (KOPI)",
+    "10900081 - PBJ3 (CERES)",
+    "10201214 - PIJ1",
+    "11102761 - PIJ2",
+    "10300732 - LIJ",
+    "30404870 - BI (BLP)",
+    "11401051 - UJI2",
+    "30100104 - PBM1",
+    "30200072 - PBM2",
+    "30700059 - PBI (SMD)"
+]
+
+# Variabel untuk menyimpan pilihan customer code
+customer_var = tk.StringVar(root)
+customer_var.set(customer_code_options[0])  # set nilai default
 
 # Buat dan susun elemen-elemen GUI
-tk.Label(root, text="File EDI:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+tk.Label(root, text="Customer Code:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+customer_dropdown = ttk.Combobox(root, textvariable=customer_var, values=customer_code_options, width=47, state="readonly")
+customer_dropdown.grid(row=0, column=1, padx=5, pady=5)
+
+tk.Label(root, text="File EDI:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
 edi_entry = tk.Entry(root, width=50)
-edi_entry.grid(row=0, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_files(edi_entry)).grid(row=0, column=2, padx=5, pady=5)
+edi_entry.grid(row=1, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_files(edi_entry)).grid(row=1, column=2, padx=5, pady=5)
 
-tk.Label(root, text="File Excel Master Data:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
+tk.Label(root, text="File Excel Master Data:").grid(row=2, column=0, sticky="e", padx=5, pady=5)
 excel_entry = tk.Entry(root, width=50)
-excel_entry.grid(row=1, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_files(excel_entry)).grid(row=1, column=2, padx=5, pady=5)
+excel_entry.grid(row=2, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_files(excel_entry)).grid(row=2, column=2, padx=5, pady=5)
 
-tk.Label(root, text="Direktori Output:").grid(row=2, column=0, sticky="e", padx=5, pady=5)
+tk.Label(root, text="Direktori Output:").grid(row=3, column=0, sticky="e", padx=5, pady=5)
 output_entry = tk.Entry(root, width=50)
-output_entry.grid(row=2, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_directory(output_entry)).grid(row=2, column=2, padx=5, pady=5)
+output_entry.grid(row=3, column=1, padx=5, pady=5)
+tk.Button(root, text="Browse", command=lambda: browse_directory(output_entry)).grid(row=3, column=2, padx=5, pady=5)
 
-tk.Button(root, text="Proses", command=process_files).grid(row=3, column=1, pady=10)
+tk.Button(root, text="Proses", command=process_files).grid(row=4, column=1, pady=10)
 
 # Jalankan aplikasi
 root.mainloop()
