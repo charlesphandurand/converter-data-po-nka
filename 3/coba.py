@@ -134,7 +134,35 @@ def browse_directory(entry):
 
 # Buat window utama
 root = tk.Tk()
-root.title("Konverter Data PO Alfamart by Charles")
+root.title("Convert PO Alfamart by Charles")
+
+# Mengubah warna background jendela
+root.configure(bg='#CBE2B5')
+
+# Mendapatkan ukuran layar
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Mendapatkan ukuran jendela
+window_width = 350  # Lebar jendela, bisa disesuaikan
+window_height = 175  # Tinggi jendela, bisa disesuaikan
+
+# Menghitung posisi x dan y untuk menempatkan jendela di tengah layar
+position_x = int(screen_width / 2 - window_width / 2)
+position_y = int(screen_height / 2 - window_height / 2)
+
+# Menetapkan ukuran jendela dan menempatkannya di tengah
+root.geometry(f'{window_width}x{window_height}+{position_x}+{position_y}')
+
+# Membuat semua kolom dan baris fleksibel
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=2)  # Kolom untuk entri dibuat lebih fleksibel
+root.columnconfigure(2, weight=1)
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
+root.rowconfigure(3, weight=1)
+root.rowconfigure(4, weight=1)
 
 # Daftar customer codes
 customer_code_options = [
@@ -154,27 +182,29 @@ customer_code_options = [
 customer_var = tk.StringVar(root)
 customer_var.set(customer_code_options[0])  # set nilai default
 
-# Buat dan susun elemen-elemen GUI
-tk.Label(root, text="Customer Code:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
-customer_dropdown = ttk.Combobox(root, textvariable=customer_var, values=customer_code_options, width=47, state="readonly")
-customer_dropdown.grid(row=0, column=1, padx=5, pady=5)
+# Elemen-elemen GUI
+tk.Label(root, text="Customer Code:", bg='#CBE2B5', fg='black').grid(row=0, column=0, sticky="e", padx=5, pady=5)
+customer_dropdown = ttk.Combobox(root, textvariable=customer_var, values=customer_code_options, state="readonly")
+customer_dropdown.grid(row=0, column=1, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-tk.Label(root, text="File EDI:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
-edi_entry = tk.Entry(root, width=50)
-edi_entry.grid(row=1, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_files(edi_entry)).grid(row=1, column=2, padx=5, pady=5)
+tk.Label(root, text="File EDI:", bg='#CBE2B5', fg='black').grid(row=1, column=0, sticky="e", padx=5, pady=5)
+edi_entry = tk.Entry(root)
+edi_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(edi_entry)).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
 
-tk.Label(root, text="File Excel Master Data:").grid(row=2, column=0, sticky="e", padx=5, pady=5)
-excel_entry = tk.Entry(root, width=50)
-excel_entry.grid(row=2, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_files(excel_entry)).grid(row=2, column=2, padx=5, pady=5)
+tk.Label(root, text="File Excel Master Data:", bg='#CBE2B5', fg='black').grid(row=2, column=0, sticky="e", padx=5, pady=5)
+excel_entry = tk.Entry(root)
+excel_entry.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
+tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry)).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
 
-tk.Label(root, text="Direktori Output:").grid(row=3, column=0, sticky="e", padx=5, pady=5)
-output_entry = tk.Entry(root, width=50)
-output_entry.grid(row=3, column=1, padx=5, pady=5)
-tk.Button(root, text="Browse", command=lambda: browse_directory(output_entry)).grid(row=3, column=2, padx=5, pady=5)
+tk.Label(root, text="Direktori Output:", bg='#CBE2B5', fg='black').grid(row=3, column=0, sticky="e", padx=5, pady=5)
+output_entry = tk.Entry(root)
+output_entry.grid(row=3, column=1, sticky="nsew", padx=5, pady=5)
+tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_directory(output_entry)).grid(row=3, column=2, sticky="nsew", padx=5, pady=5)
 
-tk.Button(root, text="Proses", command=process_files).grid(row=4, column=1, pady=10)
+# Membuat tombol "Proses" yang fleksibel
+proses_button = tk.Button(root, text="Proses", bg='#2C3E50', fg='white', command=process_files)
+proses_button.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
 
 # Jalankan aplikasi
 root.mainloop()
