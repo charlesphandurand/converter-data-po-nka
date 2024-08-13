@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import xlwings as xw
 import logging
+from datetime import datetime
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -111,7 +112,11 @@ def process_files():
                 all_output_lines.extend(output_lines)
 
         if all_output_lines:
-            output_file = os.path.join(output_dir, "combined_output.txt")
+            # Dapatkan timestamp saat ini
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
             with open(output_file, 'w') as f:
                 f.write('\n'.join(all_output_lines))
             messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
