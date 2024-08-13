@@ -1,1 +1,1 @@
-semua file yang
+root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
