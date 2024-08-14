@@ -135,8 +135,9 @@ def browse_files(entry, file_type):
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
-    # entry.delete(0, tk.END)
-    entry.insert(0, directory)
+    if directory:
+        entry.delete(0, tk.END)
+        entry.insert(0, directory)
 
 def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     output_lines = []

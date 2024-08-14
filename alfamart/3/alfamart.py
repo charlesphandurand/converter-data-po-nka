@@ -127,15 +127,24 @@ def process_files():
     
     print("Silakan periksa console untuk log detail.")
 
-def browse_files(entry):
-    filenames = filedialog.askopenfilenames()
-    entry.delete(0, tk.END)
-    entry.insert(0, ';'.join(filenames))
+def browse_files(entry, file_type):
+    if file_type == "excel":
+        filetypes = [("Excel files", "*.xls *.xlsx")]
+    elif file_type == "txt":
+        filetypes = [("Text files", "*.txt")]
+    elif file_type == "edi":
+        filetypes = [("Edi files", "*.edi")]    
+    
+    filename = filedialog.askopenfilename(filetypes=filetypes)
+    if filename:
+        entry.delete(0, tk.END)
+        entry.insert(0, filename)
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
-    entry.delete(0, tk.END)
-    entry.insert(0, directory)
+    if directory:
+        entry.delete(0, tk.END)
+        entry.insert(0, directory)
 
 # Buat window utama
 root = tk.Tk()
@@ -196,12 +205,12 @@ customer_dropdown.grid(row=0, column=1, columnspan=2, sticky="nsew", padx=5, pad
 tk.Label(root, text="File EDI:", bg='#CBE2B5', fg='black').grid(row=1, column=0, sticky="e", padx=5, pady=5)
 edi_entry = tk.Entry(root)
 edi_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(edi_entry)).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(edi_entry, "edi")).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(root, text="File Excel Master Data:", bg='#CBE2B5', fg='black').grid(row=2, column=0, sticky="e", padx=5, pady=5)
 excel_entry = tk.Entry(root)
 excel_entry.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry)).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(root, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry, "excel")).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(root, text="Direktori Output:", bg='#CBE2B5', fg='black').grid(row=3, column=0, sticky="e", padx=5, pady=5)
 output_entry = tk.Entry(root)
