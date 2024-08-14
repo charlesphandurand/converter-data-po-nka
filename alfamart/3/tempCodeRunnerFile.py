@@ -1,1 +1,1 @@
-root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
+root.configure(bg='#CBE2B5')

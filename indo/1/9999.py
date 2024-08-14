@@ -120,14 +120,21 @@ def process_files():
     
     print("Silakan periksa console untuk log detail.")
 
-def browse_files(entry):
-    filenames = filedialog.askopenfilenames()
+def browse_files(entry, file_type):
+    if file_type == "excel":
+        filetypes = [("Excel files", "*.xls *.xlsx")]
+    elif file_type == "txt":
+        filetypes = [("Text files", "*.txt")]
+    elif file_type == "edi":
+        filetypes = [("Edi files", "*.edi")]    
+    
+    filename = filedialog.askopenfilename(filetypes=filetypes)
     entry.delete(0, tk.END)
-    entry.insert(0, ';'.join(filenames))
+    entry.insert(0, (filename))
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
-    entry.delete(0, tk.END)
+    # entry.delete(0, tk.END)
     entry.insert(0, directory)
 
 def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
@@ -287,12 +294,12 @@ customer_dropdown.grid(row=0, column=1, columnspan=2, sticky="nsew", padx=5, pad
 tk.Label(tab1, text="File EDI:", bg='#CBE2B5', fg='black').grid(row=1, column=0, sticky="e", padx=5, pady=5)
 edi_entry = tk.Entry(tab1)
 edi_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(tab1, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(edi_entry)).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(tab1, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(edi_entry, "edi")).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(tab1, text="File Excel Master Data:", bg='#CBE2B5', fg='black').grid(row=2, column=0, sticky="e", padx=5, pady=5)
 excel_entry = tk.Entry(tab1)
 excel_entry.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(tab1, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry)).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(tab1, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry, "excel")).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(tab1, text="Direktori Output:", bg='#CBE2B5', fg='black').grid(row=3, column=0, sticky="e", padx=5, pady=5)
 output_entry = tk.Entry(tab1)
@@ -336,12 +343,12 @@ customer_dropdown_tab2.grid(row=0, column=1, columnspan=2, sticky="nsew", padx=5
 tk.Label(tab2, text="File TXT:", bg='#CBE2B5', fg='black').grid(row=1, column=0, sticky="e", padx=5, pady=5)
 txt_entry = tk.Entry(tab2)
 txt_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(tab2, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(txt_entry)).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(tab2, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(txt_entry, "txt")).grid(row=1, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(tab2, text="File Excel Master Data:", bg='#CBE2B5', fg='black').grid(row=2, column=0, sticky="e", padx=5, pady=5)
 excel_entry_tab2 = tk.Entry(tab2)
 excel_entry_tab2.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-tk.Button(tab2, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry_tab2)).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
+tk.Button(tab2, text="Browse", bg='#2C3E50', fg='white', command=lambda: browse_files(excel_entry_tab2, "excel")).grid(row=2, column=2, sticky="nsew", padx=5, pady=5)
 
 tk.Label(tab2, text="Direktori Output:", bg='#CBE2B5', fg='black').grid(row=3, column=0, sticky="e", padx=5, pady=5)
 output_entry_tab2 = tk.Entry(tab2)
