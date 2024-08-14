@@ -18,8 +18,9 @@ def browse_files(entry, file_type):
         filetypes = [("Edi files", "*.edi")]    
     
     filename = filedialog.askopenfilename(filetypes=filetypes)
-    entry.delete(0, tk.END)
-    entry.insert(0, (filename))
+    if filename:
+        entry.delete(0, tk.END)
+        entry.insert(0, filename)
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
