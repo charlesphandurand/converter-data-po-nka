@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+from PIL import Image, ImageTk
+import os
+import sys
 import pandas as pd
 import os
 import xlwings as xw
@@ -247,7 +250,25 @@ def process_files_tab2():
 # Buat window utama
 root = tk.Tk()
 root.title("Converter PO | Pulau Baru Group")
-# root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, relative_path)
+
+# Coba set ikon, tapi jangan hentikan program jika gagal
+try:
+    icon_path = resource_path("pbg.ico")
+    img = Image.open(icon_path)
+    photo = ImageTk.PhotoImage(img)
+    root.wm_iconphoto(True, photo)
+except Exception as e:
+    print(f"Tidak dapat memuat ikon: {e}")
+    
+print(f"Mencoba memuat ikon dari: {icon_path}")
 
 # Mengatur ukuran jendela utama dan menempatkannya di tengah
 screen_width = root.winfo_screenwidth()

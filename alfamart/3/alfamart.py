@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
-import base64
-import io
 from PIL import Image, ImageTk
+import os
+import sys
 import pandas as pd
 import os
 import xlwings as xw
@@ -158,6 +158,25 @@ def browse_directory(entry):
 # Buat window utama
 root = tk.Tk()
 root.title("Convert PO Alfamart | Pulau Baru Group")
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, relative_path)
+
+# Coba set ikon, tapi jangan hentikan program jika gagal
+try:
+    icon_path = resource_path("pbg.ico")
+    img = Image.open(icon_path)
+    photo = ImageTk.PhotoImage(img)
+    root.wm_iconphoto(True, photo)
+except Exception as e:
+    print(f"Tidak dapat memuat ikon: {e}")
+    
+print(f"Mencoba memuat ikon dari: {icon_path}")
 
 # Mengubah warna background jendela
 root.configure(bg='#CBE2B5')
