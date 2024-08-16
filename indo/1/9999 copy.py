@@ -156,7 +156,7 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     
     logging.info(f"Columns in Excel: {df_excel.columns.tolist()}")
     
-    for i in range(0, len(lines), 2):
+    for i in range(len(lines)):
         if i+1 < len(lines):
             ordmsg_line = lines[i].strip()
             orddtl_line = lines[i+1].strip()
@@ -168,25 +168,32 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
                 isi = orddtl_line[24:29]
                 kode_item = orddtl_line[36:44]
                 
-                logging.debug(f"Extracted data:")
+                logging.debug(f"Extracted data:'{lines}'")
                 logging.debug(f"Nomor PO: '{nomor_po}'")
                 logging.debug(f"Tanggal PO: '{tanggal_po}'")
                 logging.debug(f"QTY: '{qty}'")
                 logging.debug(f"Isi: '{isi}'")
                 logging.debug(f"Kode Item: '{kode_item}'")
-                
+                logging.debug(f"DataFrame contents:\n{df_excel.head()}")
+
                 qty = int(qty)
                 isi = int(isi)
                 
                 # VLOOKUP untuk SALESMAN
                 salesman = df_excel.loc[df_excel['PLU'] == kode_item, 'SALESMAN'].values
                 logging.debug(f"VLOOKUP result for SALESMAN: {salesman}")
-                salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = 'Not Found'
 
                 # VLOOKUP untuk KODE AGLIS
                 kode_aglis = df_excel.loc[df_excel['PLU'] == kode_item, 'KODE AGLIS'].values
                 logging.debug(f"VLOOKUP result for KODE AGLIS: {kode_aglis}")
-                kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = 'Not Found'
 
                 pcs = qty * isi
 
