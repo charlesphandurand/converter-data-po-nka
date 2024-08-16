@@ -63,11 +63,19 @@ def process_edi_file(edi_file, df_excel, customer_code):
             for lin_line in lin_lines:
                 edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
 
+                # VLOOKUP untuk SALESMAN
                 salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = 'Not Found'
 
+                # VLOOKUP untuk KODE AGLIS
                 kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = 'Not Found'
 
                 lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
                 lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
@@ -126,12 +134,14 @@ def browse_files(entry, file_type):
     elif file_type == "txt":
         filetypes = [("Text files", "*.txt")]
     elif file_type == "edi":
-        filetypes = [("Edi files", "*.edi")]    
+        filetypes = [("EDI files", "*.edi")]
     
-    filename = filedialog.askopenfilename(filetypes=filetypes)
-    if filename:
+    filenames = filedialog.askopenfilenames(filetypes=filetypes)
+    if filenames:
         entry.delete(0, tk.END)
-        entry.insert(0, filename)
+        # Gabungkan semua path file yang dipilih menjadi satu string yang dipisahkan oleh tanda koma atau lainnya
+        entry.insert(0, ';'.join(filenames))
+
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
@@ -230,6 +240,7 @@ def process_files_tab2():
 # Buat window utama
 root = tk.Tk()
 root.title("Converter PO | Pulau Baru Group")
+# root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
 
 # Mengatur ukuran jendela utama dan menempatkannya di tengah
 screen_width = root.winfo_screenwidth()
@@ -239,7 +250,6 @@ window_height = 300
 position_x = int(screen_width / 2 - window_width / 2)
 position_y = int(screen_height / 2 - window_height / 1.5)
 root.geometry(f'{window_width}x{window_height}+{position_x}+{position_y}')
-root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
 
 # Membuat tab control
 tab_control = ttk.Notebook(root)

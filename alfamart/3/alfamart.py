@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+import base64
+import io
+from PIL import Image, ImageTk
 import pandas as pd
 import os
 import xlwings as xw
@@ -67,11 +70,17 @@ def process_edi_file(edi_file, df_excel, customer_code):
 
                 # VLOOKUP untuk SALESMAN
                 salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                salesman = int(salesman[0]) if len(salesman) > 0 else 'Not Found'
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = 'Not Found'
 
                 # VLOOKUP untuk KODE AGLIS
                 kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                kode_aglis = int(kode_aglis[0]) if len(kode_aglis) > 0 else 'Not Found'
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = 'Not Found'
 
                 # Calculate the last value
                 lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
@@ -133,18 +142,18 @@ def browse_files(entry, file_type):
     elif file_type == "txt":
         filetypes = [("Text files", "*.txt")]
     elif file_type == "edi":
-        filetypes = [("Edi files", "*.edi")]    
+        filetypes = [("EDI files", "*.edi")]
     
-    filename = filedialog.askopenfilename(filetypes=filetypes)
-    if filename:
+    filenames = filedialog.askopenfilenames(filetypes=filetypes)
+    if filenames:
         entry.delete(0, tk.END)
-        entry.insert(0, filename)
+        # Gabungkan semua path file yang dipilih menjadi satu string yang dipisahkan oleh tanda koma atau lainnya
+        entry.insert(0, ';'.join(filenames))
 
 def browse_directory(entry):
     directory = filedialog.askdirectory()
-    if directory:
-        entry.delete(0, tk.END)
-        entry.insert(0, directory)
+    entry.delete(0, tk.END)
+    entry.insert(0, directory)
 
 # Buat window utama
 root = tk.Tk()
@@ -152,7 +161,7 @@ root.title("Convert PO Alfamart | Pulau Baru Group")
 
 # Mengubah warna background jendela
 root.configure(bg='#CBE2B5')
-root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
+# root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
 
 # Mendapatkan ukuran layar
 screen_width = root.winfo_screenwidth()
@@ -183,14 +192,14 @@ root.rowconfigure(4, weight=1)
 customer_code_options = [
     "10102225 - PBJ1 (KOPI)",
     "10900081 - PBJ3 (CERES)",
-    "10201214 - PIJ1",
-    "11102761 - PIJ2",
-    "10300732 - LIJ",
-    "30404870 - BI (BLP)",
-    "11401051 - UJI2",
-    "30100104 - PBM1",
-    "30200072 - PBM2",
-    "30700059 - PBI (SMD)"
+    # "10201214 - PIJ1",
+    # "11102761 - PIJ2",
+    # "10300732 - LIJ",
+    # "30404870 - BI (BLP)",
+    # "11401051 - UJI2",
+    # "30100104 - PBM1",
+    # "30200072 - PBM2",
+    # "30700059 - PBI (SMD)"
 ]
 
 # Variabel untuk menyimpan pilihan customer code

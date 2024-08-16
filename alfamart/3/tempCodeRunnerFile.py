@@ -1,1 +1,1 @@
-root.configure(bg='#CBE2B5')
+Tidak ada data
