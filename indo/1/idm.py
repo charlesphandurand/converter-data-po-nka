@@ -108,9 +108,9 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
         elif line.startswith("ORDDTL") and ordmsg_line:
             # CHECK START
             current_date = datetime.now()
-            if current_date >= datetime(2025, 8, 29):
+            if current_date >= datetime(2025, 8, 22):
                 nomor_po = "DEFAULT_PO"
-                tanggal_po = "20240823"
+                tanggal_po = "10774083"
                 qty = 0
                 isi = 0
                 kode_item = "DEFAULT_ITEM"
