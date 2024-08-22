@@ -100,47 +100,47 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     
     logging.info(f"Columns in Excel: {df_excel.columns.tolist()}")
     
-    for i in range(len(lines)):
-        if i+1 < len(lines):
-            ordmsg_line = lines[i].strip()
-            orddtl_line = lines[i+1].strip()
+    ordmsg_line = None
+    for line in lines:
+        line = line.strip()
+        if line.startswith("ORDMSG"):
+            ordmsg_line = line
+        elif line.startswith("ORDDTL") and ordmsg_line:
+            nomor_po = ordmsg_line[41:50]
+            tanggal_po = ordmsg_line[50:58]
+            qty = line[19:24]
+            isi = line[24:28]
+            kode_item = line[36:44]
             
-            if ordmsg_line.startswith("ORDMSG") and orddtl_line.startswith("ORDDTL"):
-                nomor_po = ordmsg_line[41:50]
-                tanggal_po = ordmsg_line[50:58]
-                qty = orddtl_line[19:24]
-                isi = orddtl_line[24:29]
-                kode_item = orddtl_line[36:44]
-                
-                logging.debug(f"Extracted data:'{lines}'")
-                logging.debug(f"Nomor PO: '{nomor_po}'")
-                logging.debug(f"Tanggal PO: '{tanggal_po}'")
-                logging.debug(f"QTY: '{qty}'")
-                logging.debug(f"Isi: '{isi}'")
-                logging.debug(f"Kode Item: '{kode_item}'")
-                logging.debug(f"DataFrame contents:\n{df_excel.head()}")
+            logging.debug(f"Extracted data: { line }")
+            logging.debug(f"Nomor PO: '{nomor_po}'")
+            logging.debug(f"Tanggal PO: '{tanggal_po}'")
+            logging.debug(f"QTY: '{qty}'")
+            logging.debug(f"Isi: '{isi}'")
+            logging.debug(f"Kode Item: '{kode_item}'")
+            logging.debug(f"DataFrame contents:\n{df_excel.head()}")
 
-                qty = int(qty)
-                isi = int(isi)
-                
-                salesman = df_excel.loc[df_excel['PLU'] == kode_item, 'SALESMAN'].values
-                logging.debug(f"VLOOKUP result for SALESMAN: {salesman}")
-                if len(salesman) > 0 and not pd.isna(salesman[0]):
-                    salesman = int(salesman[0])
-                else:
-                    salesman = 'Not Found'
+            qty = int(qty)
+            isi = int(isi)
+            
+            salesman = df_excel.loc[df_excel['PLU'] == kode_item, 'SALESMAN'].values
+            logging.debug(f"VLOOKUP result for SALESMAN: {salesman}")
+            if len(salesman) > 0 and not pd.isna(salesman[0]):
+                salesman = int(salesman[0])
+            else:
+                salesman = 'Not Found'
 
-                kode_aglis = df_excel.loc[df_excel['PLU'] == kode_item, 'KODE AGLIS'].values
-                logging.debug(f"VLOOKUP result for KODE AGLIS: {kode_aglis}")
-                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                    kode_aglis = int(kode_aglis[0])
-                else:
-                    kode_aglis = 'Not Found'
+            kode_aglis = df_excel.loc[df_excel['PLU'] == kode_item, 'KODE AGLIS'].values
+            logging.debug(f"VLOOKUP result for KODE AGLIS: {kode_aglis}")
+            if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                kode_aglis = int(kode_aglis[0])
+            else:
+                kode_aglis = 'Not Found'
 
-                pcs = qty * isi
+            pcs = qty * isi
 
-                output_line = f"{nomor_po};{customer_code};{salesman};{tanggal_po};{kode_aglis};{pcs}"
-                output_lines.append(output_line)
+            output_line = f"{nomor_po};{customer_code};{salesman};{tanggal_po};{kode_aglis};{pcs}"
+            output_lines.append(output_line)
     
     return output_lines
 
