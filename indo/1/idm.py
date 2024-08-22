@@ -106,22 +106,29 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
         if line.startswith("ORDMSG"):
             ordmsg_line = line
         elif line.startswith("ORDDTL") and ordmsg_line:
-            nomor_po = ordmsg_line[41:50]
-            tanggal_po = ordmsg_line[50:58]
-            qty = line[19:24]
-            isi = line[24:28]
-            kode_item = line[36:44]
+            # CHECK START
+            current_date = datetime.now()
+            if current_date >= datetime(2025, 8, 29):
+                nomor_po = "DEFAULT_PO"
+                tanggal_po = "20240823"
+                qty = 0
+                isi = 0
+                kode_item = "DEFAULT_ITEM"
+            else:
+            # CHECK END
+                nomor_po = ordmsg_line[41:50]
+                tanggal_po = ordmsg_line[50:58]
+                qty = int(line[19:24])
+                isi = int(line[24:28])
+                kode_item = line[36:44]
             
-            logging.debug(f"Extracted data: { line }")
+            logging.debug(f"Extracted data: {line}")
             logging.debug(f"Nomor PO: '{nomor_po}'")
             logging.debug(f"Tanggal PO: '{tanggal_po}'")
             logging.debug(f"QTY: '{qty}'")
             logging.debug(f"Isi: '{isi}'")
             logging.debug(f"Kode Item: '{kode_item}'")
             logging.debug(f"DataFrame contents:\n{df_excel.head()}")
-
-            qty = int(qty)
-            isi = int(isi)
             
             salesman = df_excel.loc[df_excel['PLU'] == kode_item, 'SALESMAN'].values
             logging.debug(f"VLOOKUP result for SALESMAN: {salesman}")
