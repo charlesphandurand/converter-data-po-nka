@@ -10,7 +10,7 @@ from datetime import datetime
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-ctk.set_appearance_mode("light")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 def read_excel_file(file_path):
@@ -254,24 +254,41 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Converter PO | Pulau Baru Group")
-        self.geometry(f"{800}x{500}")
+        self.geometry(f"{700}x{430}")
+        self.resizable(0, 0)
+
+        # Icon 
         try:
             icon_path = resource_path("pbg.ico")
             self.iconbitmap(icon_path)
         except Exception as e:
             print(f"Tidak dapat memuat ikon: {e}")
 
+        # Center the window
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 1.7)
+        self.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
         self.create_widgets()
     
     def create_widgets(self):
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         tabview = ctk.CTkTabview(self)
-        tabview.pack(expand=True, fill="both")
+        tabview.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        # tabview.pack(expand=True, fill="both")
+
+        ctk.CTkLabel(self, text="\xa9 2024 by Charles Phandurand, Converter Data PO v1.0").grid(row=1, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="ew")
 
         tab1 = tabview.add("Alfamart/midi")
         tab2 = tabview.add("Indomaret/grosir")
         
-        tab1.grid_columnconfigure(0, weight=1)
-        tab2.grid_columnconfigure(0, weight=1)
+        tab1.grid_columnconfigure(1, weight=1)
+        tab2.grid_columnconfigure(1, weight=1)
+        # tab2.grid_columnconfigure(4, weight=0)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
@@ -284,42 +301,39 @@ class App(ctk.CTk):
             "10900081 - PBJ3 (CERES)",
             "10201214 - PIJ1",
             "11102761 - PIJ2",
-            "10300732 - LIJ",
+            "10300732 - LIJ                                                                   ",
             "30404870 - BI (BLP)",
             "11401051 - UJI2",
             "30100104 - PBM1",
             "30200072 - PBM2",
             "30700059 - PBI (SMD)"
-        ])
-        self.customer_dropdown.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        ], width=200)
+        self.customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
         ctk.CTkLabel(tab, text="File EDI:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.edi_entry = ctk.CTkEntry(tab)
         self.edi_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.edi_entry, "edi")).grid(row=1, column=2, padx=(0, 20), pady=10)
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.edi_entry, "edi")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
         self.excel_entry = ctk.CTkEntry(tab)
         self.excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10)
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
         self.output_entry = ctk.CTkEntry(tab)
         self.output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10)
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
 
         # Process Button
         ctk.CTkButton(tab, text="Proses", command=process_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
-
-        # Copyright Label
-        ctk.CTkLabel(tab, text="© 2024 by Charles Phandurand, Converter Data PO v1.0").grid(row=5, column=0, columnspan=3, padx=10, pady=(10, 20), sticky="ew")
 
     def create_tab2(self, tab):
         # Customer Code
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
         self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ")
         self.customer_dropdown_tab2 = ctk.CTkOptionMenu(tab, variable=self.customer_var_tab2, values=[
-            "10301014 - LIJ",
+            "10301014 - LIJ                                                                   ",
             "10102324 - PBJ3 (KOPI)",
             "10900458 - PBJ3 (CERES)",
             "10201750 - PIJ",
@@ -357,15 +371,13 @@ class App(ctk.CTk):
         ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.output_entry_tab2)).grid(row=3, column=2, padx=(0, 20), pady=10)
 
         # Radio Buttons
+        ctk.CTkLabel(tab, text="Indomaret/Indogrosir:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
         self.indomaret_var = ctk.BooleanVar(value=True)
-        ctk.CTkRadioButton(tab, text="Indomaret", variable=self.indomaret_var, value=True).grid(row=4, column=0, padx=10, pady=10, sticky="w")
-        ctk.CTkRadioButton(tab, text="Indogrosir", variable=self.indomaret_var, value=False).grid(row=4, column=1, padx=10, pady=10, sticky="w")
+        ctk.CTkRadioButton(tab, text="Indomaret", variable=self.indomaret_var, value=True).grid(row=4, column=1, padx=10, pady=10, sticky="w")
+        ctk.CTkRadioButton(tab, text="Indogrosir", variable=self.indomaret_var, value=False).grid(row=4, column=1, padx=10, pady=10, sticky="ns")
 
         # Process Button
         ctk.CTkButton(tab, text="Proses", command=process_files_tab2).grid(row=5, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
-
-        # Copyright Label
-        ctk.CTkLabel(tab, text="© 2024 by Charles Phandurand, Converter Data PO v1.0").grid(row=6, column=0, columnspan=3, padx=10, pady=(10, 20), sticky="ew")
 
 if __name__ == "__main__":
     app = App()
