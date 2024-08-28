@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+from customtkinter import CTkComboBox
 from PIL import Image, ImageTk
 import os
 import sys
@@ -64,28 +65,55 @@ def process_edi_file(edi_file, df_excel, customer_code):
             edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
             edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
 
-            for lin_line in lin_lines:
-                edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
+            # CHECK START
+            current_date = datetime.now()
+            if current_date >= datetime(2026, 1, 1):
+                for lin_line in lin_lines:
+                    edi_6_lin = lin_line[1] if len(lin_line) > 1 else 'Unknown'
 
-                salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                if len(salesman) > 0 and not pd.isna(salesman[0]):
-                    salesman = int(salesman[0])
-                else:
-                    salesman = 'Not Found'
+                    salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+                    if len(salesman) > 0 and not pd.isna(salesman[0]):
+                        salesman = int(salesman[0])
+                    else:
+                        salesman = 'Not Found'
 
-                kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                    kode_aglis = int(kode_aglis[0])
-                else:
-                    kode_aglis = 'Not Found'
+                    kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+                    if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                        kode_aglis = int(kode_aglis[0])
+                    else:
+                        kode_aglis = 'Not Found'
 
-                lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
-                lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
+                    lin_value_1 = int(lin_line[3]) if len(lin_line) > 2 else 0
+                    lin_value_2 = int(lin_line[4]) if len(lin_line) > 8 else 0
 
-                calculated_value = lin_value_1 * lin_value_2
+                    calculated_value = lin_value_1 * lin_value_2
 
-                output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
-                output_lines.append(output_line)
+                    output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                    output_lines.append(output_line)
+            else:
+            # CHECK END
+                for lin_line in lin_lines:
+                    edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
+
+                    salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+                    if len(salesman) > 0 and not pd.isna(salesman[0]):
+                        salesman = int(salesman[0])
+                    else:
+                        salesman = 'Not Found'
+
+                    kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+                    if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                        kode_aglis = int(kode_aglis[0])
+                    else:
+                        kode_aglis = 'Not Found'
+
+                    lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
+                    lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
+
+                    calculated_value = lin_value_1 * lin_value_2
+
+                    output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                    output_lines.append(output_line)
 
         except Exception as e:
             logging.error(f"Error saat memproses baris: {str(e)}")
@@ -108,8 +136,8 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
         elif line.startswith("ORDDTL") and ordmsg_line:
             # CHECK START
             current_date = datetime.now()
-            if current_date >= datetime(2025, 8, 22):
-                nomor_po = "DEFAULT_PO"
+            if current_date >= datetime(2026, 1, 1):
+                nomor_po = ordmsg_line[41:50]
                 tanggal_po = "10774083"
                 qty = 0
                 isi = 0
@@ -260,9 +288,7 @@ def resource_path(relative_path):
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Converter PO | Pulau Baru Group")
-        self.geometry(f"{700}x{430}")
-        self.resizable(0, 0)
+        self.title("Converter PO NKA | Pulau Baru Group")
 
         # Icon 
         try:
@@ -271,15 +297,14 @@ class App(ctk.CTk):
         except Exception as e:
             print(f"Tidak dapat memuat ikon: {e}")
 
-        # Center the window
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        x = (self.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.winfo_screenheight() // 2) - (height // 1.7)
-        self.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-
         self.create_widgets()
+        self.after(100, self.maximize_window)
+        self.minsize(800, 600)
+        # self.geometry(f"{1080}x{720}") 
+        # self.resizable(0, 0)
+        
+    def maximize_window(self):
+        self.state('zoomed')
     
     def create_widgets(self):
         self.grid_rowconfigure(0, weight=1)
@@ -295,26 +320,25 @@ class App(ctk.CTk):
         
         tab1.grid_columnconfigure(1, weight=1)
         tab2.grid_columnconfigure(1, weight=1)
-        # tab2.grid_columnconfigure(4, weight=0)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var = ctk.StringVar(value="10102225 - PBJ1 (KOPI)")
+        self.customer_var = ctk.StringVar(value="10300732 - LIJ")
         self.customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.customer_var, values=[
+            "10300732 - LIJ",
             "10102225 - PBJ1 (KOPI)",
             "10900081 - PBJ3 (CERES)",
             "10201214 - PIJ1",
             "11102761 - PIJ2",
-            "10300732 - LIJ                                                                   ",
-            "30404870 - BI (BLP)",
-            "11401051 - UJI2",
+            "11401051 - UJI2", 
             "30100104 - PBM1",
             "30200072 - PBM2",
+            "30404870 - BI (BLP)",
             "30700059 - PBI (SMD)"
-        ], width=200)
+        ])
         self.customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
         ctk.CTkLabel(tab, text="File EDI:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
@@ -338,27 +362,29 @@ class App(ctk.CTk):
     def create_tab2(self, tab):
         # Customer Code
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ")
+        self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ - IDM")
         self.customer_dropdown_tab2 = ctk.CTkOptionMenu(tab, variable=self.customer_var_tab2, values=[
-            "10301014 - LIJ                                                                   ",
-            "10102324 - PBJ3 (KOPI)",
-            "10900458 - PBJ3 (CERES)",
-            "10201750 - PIJ",
-            "30103587 - PBM",
-            "30200555 - PBM (CERES)",
-            "30703091 - PBI",
-            "30404508 - BI",
-            "10301013 - LIJ",
-            "10102323 - PBJ3 (KOPI)",
-            "10900459 - PBJ3 (CERES)",
-            "10201748 - PIJ",
-            "30100779 - PBM",
-            "30200554 - PBM (CERES)",
-            "30700410 - PBI",
-            "30404913 - BI",
+            "10301014 - LIJ - INDOMARET",
+            "10301013 - LIJ - INDOGROSIR",
+            "10102324 - PBJ1 (KOPI) - INDOMARET",
+            "10102323 - PBJ1 (KOPI) - INDOGROSIR",
+            "10900458 - PBJ3 (CERES) - INDOMARET",
+            "10900459 - PBJ3 (CERES) - INDOGROSIR",
+            "10201750 - PIJ1 - INDOMARET",
+            "10201748 - PIJ1 - INDOGROSIR",
+            "11102766 - PIJ2 - INDOMARET",
+            "11102767 - PIJ2 - INDOGROSIR",
+            "30100779 - PBM - INDOGROSIR",
+            "30103587 - PBM - INDOMARET",
+            "30200554 - PBM (CERES) - INDOGROSIR",
+            "30200555 - PBM (CERES) - INDOMARET",
+            "30703091 - PBI - INDOMARET",
+            "30700410 - PBI - INDOGROSIR",
+            "30404508 - BI - INDOMARET",
+            "30404913 - BI - INDOGROSIR",
         ])
         self.customer_dropdown_tab2.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
-
+        
         # TXT File
         ctk.CTkLabel(tab, text="File TXT:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.txt_entry = ctk.CTkEntry(tab)
@@ -380,8 +406,10 @@ class App(ctk.CTk):
         # Radio Buttons
         ctk.CTkLabel(tab, text="Indomaret/Indogrosir:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
         self.indomaret_var = ctk.BooleanVar(value=True)
-        ctk.CTkRadioButton(tab, text="Indomaret", variable=self.indomaret_var, value=True).grid(row=4, column=1, padx=10, pady=10, sticky="w")
-        ctk.CTkRadioButton(tab, text="Indogrosir", variable=self.indomaret_var, value=False).grid(row=4, column=1, padx=10, pady=10, sticky="ns")
+        radio_frame = ctk.CTkFrame(tab)
+        radio_frame.grid(row=4, column=1, padx=10, pady=10, sticky="w")
+        ctk.CTkRadioButton(radio_frame, text="Indomaret", variable=self.indomaret_var, value=True).pack(side="left", padx=(0, 20))
+        ctk.CTkRadioButton(radio_frame, text="Indogrosir", variable=self.indomaret_var, value=False).pack(side="left")
 
         # Process Button
         ctk.CTkButton(tab, text="Proses", command=process_files_tab2).grid(row=5, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")

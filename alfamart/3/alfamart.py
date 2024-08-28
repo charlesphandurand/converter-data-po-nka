@@ -180,7 +180,6 @@ print(f"Mencoba memuat ikon dari: {icon_path}")
 
 # Mengubah warna background jendela
 root.configure(bg='#CBE2B5')
-# root.iconbitmap(r'C:\Users\TOSHIBA PORTEGE Z30C\Desktop\program python\alfamart\3\pbg.ico')
 
 # Mendapatkan ukuran layar
 screen_width = root.winfo_screenwidth()

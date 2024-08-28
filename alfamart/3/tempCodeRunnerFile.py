@@ -1,1 +1,1 @@
-Tidak ada data
+import tkinter as tk
