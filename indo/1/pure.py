@@ -11,14 +11,14 @@ from datetime import datetime
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
-def read_excel_file(file_path):
+def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
     try:
         app = xw.App(visible=False)
         book = app.books.open(file_path)
-        sheet = book.sheets["KODE ITEM alfa"]
+        sheet = book.sheets[sheet_name]
         
         data = sheet.used_range.options(pd.DataFrame, index=False, header=True).value
         
@@ -28,7 +28,7 @@ def read_excel_file(file_path):
         required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         for col in required_columns:
             if col not in data.columns:
-                logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet 'KODE ITEM alfa'")
+                logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet '{sheet_name}'")
                 return None
         
         logging.info(f"Kolom yang ditemukan: {data.columns.tolist()}")
@@ -142,7 +142,7 @@ def process_farmer_files():
         return
 
     try:
-        df_excel = read_excel_file(excel_file)
+        df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
         if df_excel is None:
             messagebox.showerror("Error", "Gagal membaca file Excel.")
             return
@@ -203,16 +203,18 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
                 salesman = 'Not Found'
             logging.debug(f"Hasil pencarian salesman: {salesman}")
 
+            logging.debug(f"Mencari kode aglis untuk barcode: {barcode}")
             # Pencarian kode aglis
             kode_aglis = df_excel.loc[df_excel['BARCODE'] == barcode, 'KODE AGLIS'].values
             if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
                 kode_aglis = int(kode_aglis[0])
             else:
                 kode_aglis = 'Not Found'
+            logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
 
             pcs = int(order_quantity)*int(uom_pack_size)
             # Format output sesuai dengan yang diinginkan
-            output_line = f"{po_number};{customer_code};{salesman};{po_date};{kode_aglis};{pcs};{barcode}"
+            output_line = f"{po_number};{customer_code};{salesman};{po_date};{kode_aglis};{pcs}"
             output_lines.append(output_line)
         except KeyError as e:
             logging.error(f"Error saat memproses baris: {str(e)}")

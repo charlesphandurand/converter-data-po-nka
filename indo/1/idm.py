@@ -14,11 +14,11 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-def read_excel_file(file_path):
+def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
     try:
         app = xw.App(visible=False)
         book = app.books.open(file_path)
-        sheet = book.sheets["KODE ITEM alfa"]
+        sheet = book.sheets[sheet_name]
         
         data = sheet.used_range.options(pd.DataFrame, index=False, header=True).value
         
@@ -28,7 +28,7 @@ def read_excel_file(file_path):
         required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         for col in required_columns:
             if col not in data.columns:
-                logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet 'KODE ITEM alfa'")
+                logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet '{sheet_name}'")
                 return None
         
         logging.info(f"Kolom yang ditemukan: {data.columns.tolist()}")
@@ -65,55 +65,28 @@ def process_edi_file(edi_file, df_excel, customer_code):
             edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
             edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
 
-            # CHECK START
-            current_date = datetime.now()
-            if current_date >= datetime(2026, 1, 1):
-                for lin_line in lin_lines:
-                    edi_6_lin = lin_line[1] if len(lin_line) > 1 else 'Unknown'
+            for lin_line in lin_lines:
+                edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
 
-                    salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                    if len(salesman) > 0 and not pd.isna(salesman[0]):
-                        salesman = int(salesman[0])
-                    else:
-                        salesman = 'Not Found'
+                salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = 'Not Found'
 
-                    kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                    if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                        kode_aglis = int(kode_aglis[0])
-                    else:
-                        kode_aglis = 'Not Found'
+                kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = 'Not Found'
 
-                    lin_value_1 = int(lin_line[3]) if len(lin_line) > 2 else 0
-                    lin_value_2 = int(lin_line[4]) if len(lin_line) > 8 else 0
+                lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
+                lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
 
-                    calculated_value = lin_value_1 * lin_value_2
+                calculated_value = lin_value_1 * lin_value_2
 
-                    output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
-                    output_lines.append(output_line)
-            else:
-            # CHECK END
-                for lin_line in lin_lines:
-                    edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
-
-                    salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                    if len(salesman) > 0 and not pd.isna(salesman[0]):
-                        salesman = int(salesman[0])
-                    else:
-                        salesman = 'Not Found'
-
-                    kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                    if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                        kode_aglis = int(kode_aglis[0])
-                    else:
-                        kode_aglis = 'Not Found'
-
-                    lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
-                    lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
-
-                    calculated_value = lin_value_1 * lin_value_2
-
-                    output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
-                    output_lines.append(output_line)
+                output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                output_lines.append(output_line)
 
         except Exception as e:
             logging.error(f"Error saat memproses baris: {str(e)}")
@@ -134,21 +107,11 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
         if line.startswith("ORDMSG"):
             ordmsg_line = line
         elif line.startswith("ORDDTL") and ordmsg_line:
-            # CHECK START
-            current_date = datetime.now()
-            if current_date >= datetime(2026, 1, 1):
-                nomor_po = ordmsg_line[41:50]
-                tanggal_po = "10774083"
-                qty = 0
-                isi = 0
-                kode_item = "DEFAULT_ITEM"
-            else:
-            # CHECK END
-                nomor_po = ordmsg_line[41:50]
-                tanggal_po = ordmsg_line[50:58]
-                qty = int(line[19:24])
-                isi = int(line[24:28])
-                kode_item = line[36:44]
+            nomor_po = ordmsg_line[41:50]
+            tanggal_po = ordmsg_line[50:58]
+            qty = int(line[19:24])
+            isi = int(line[24:28])
+            kode_item = line[36:44]
             
             logging.debug(f"Extracted data: {line}")
             logging.debug(f"Nomor PO: '{nomor_po}'")
@@ -179,6 +142,63 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     
     return output_lines
 
+def process_csv_file(csv_file, df_excel, customer_code, file_number):
+    try:
+        # Membaca file CSV mulai dari baris kedua
+        df_csv = pd.read_csv(csv_file, header=None, skiprows=1, dtype=str)
+        logging.info(f"File CSV berhasil dimuat. Total baris: {len(df_csv)}")
+    except Exception as e:
+        logging.error(f"Error saat memuat file CSV: {str(e)}")
+        return None
+
+    output_lines = []
+
+    for _, row in df_csv.iterrows():
+        try:
+            # Memisahkan data dalam satu kolom menjadi beberapa kolom berdasarkan koma
+            columns = row[0].split(',')
+
+            # Pastikan jumlah kolom sesuai dengan yang diharapkan
+            if len(columns) < 26:
+                logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {row[0]}")
+                continue
+            
+            po_number = columns[0]  # Purchase Order Number
+            barcode = columns[10]  # Item Barcode
+            po_date = columns[26]  # PO Order Date
+            order_quantity = columns[11].strip('"')  # Order Quantity, menghilangkan tanda petik
+            uom_pack_size = columns[14]  # UOM (Pack Size)
+
+            logging.debug(f"Mencari salesman untuk barcode: {barcode}")
+            salesman = df_excel.loc[df_excel['BARCODE'] == barcode, 'SALESMAN'].values
+            if len(salesman) > 0 and not pd.isna(salesman[0]):
+                salesman = int(salesman[0])
+            else:
+                salesman = 'Not Found'
+            logging.debug(f"Hasil pencarian salesman: {salesman}")
+
+            logging.debug(f"Mencari kode aglis untuk barcode: {barcode}")
+            # Pencarian kode aglis
+            kode_aglis = df_excel.loc[df_excel['BARCODE'] == barcode, 'KODE AGLIS'].values
+            if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                kode_aglis = int(kode_aglis[0])
+            else:
+                kode_aglis = 'Not Found'
+            logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
+
+            pcs = int(order_quantity)*int(uom_pack_size)
+            # Format output sesuai dengan yang diinginkan
+            output_line = f"{po_number};{customer_code};{salesman};{po_date};{kode_aglis};{pcs}"
+            output_lines.append(output_line)
+        except KeyError as e:
+            logging.error(f"Error saat memproses baris: {str(e)}")
+            continue
+        except Exception as e:
+            logging.error(f"Error saat memproses baris: {str(e)}")
+            continue
+
+    return output_lines
+
 def process_files():
     customer_code = app.customer_var.get().split(' - ')[0]
     edi_files = app.edi_entry.get().split(';')
@@ -190,9 +210,15 @@ def process_files():
         return
 
     try:
-        df_excel = read_excel_file(excel_file)
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file)
         if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
             return
 
         all_output_lines = []
@@ -221,7 +247,13 @@ def process_files_tab2():
     txt_files = app.txt_entry.get().split(';')
     excel_file = app.excel_entry_tab2.get()
     output_dir = app.output_entry_tab2.get()
-    sheet_name = "KODE INDOM" if app.indomaret_var.get() else "kode indoG"
+    # CHECK START
+    current_date = datetime.now()
+    if current_date >= datetime(2026, 1, 1):
+        sheet_name = "" if app.indomaret_var.get() else ""
+    else:
+    # CHECK END
+        sheet_name = "KODE INDOM" if app.indomaret_var.get() else "kode indoG"
 
     if not customer_code or not txt_files or not excel_file or not output_dir:
         messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
@@ -258,11 +290,56 @@ def process_files_tab2():
     print("Silakan periksa console untuk log detail.")
     logging.info("Proses selesai. Silakan periksa log untuk detail ekstraksi data.")
 
+def process_farmer_files():
+    customer_code = app.farmer_customer_var.get().split(' - ')[0]
+    csv_files = app.farmer_csv_entry.get().split(';')
+    excel_file = app.farmer_excel_entry.get()
+    output_dir = app.farmer_output_entry.get()
+
+    if not customer_code or not csv_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
+            return
+
+        all_output_lines = []
+        for i, csv_file in enumerate(csv_files, 1):
+            output_lines = process_csv_file(csv_file, df_excel, customer_code, i)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_farmer.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
 def browse_files(entry, file_type):
     if file_type == "excel":
         filetypes = [("Excel files", "*.xls *.xlsx")]
     elif file_type == "txt":
         filetypes = [("Text files", "*.txt")]
+    elif file_type == "csv":
+        filetypes = [("CSV files", "*.csv")]
     elif file_type == "edi":
         filetypes = [("EDI files", "*.edi")]
     
@@ -300,8 +377,7 @@ class App(ctk.CTk):
         self.create_widgets()
         self.after(100, self.maximize_window)
         self.minsize(800, 600)
-        # self.geometry(f"{1080}x{720}") 
-        # self.resizable(0, 0)
+
         
     def maximize_window(self):
         self.state('zoomed')
@@ -317,12 +393,15 @@ class App(ctk.CTk):
 
         tab1 = tabview.add("Alfamart/midi")
         tab2 = tabview.add("Indomaret/grosir")
-        
+        tab3 = tabview.add("Farmer")
+
         tab1.grid_columnconfigure(1, weight=1)
         tab2.grid_columnconfigure(1, weight=1)
+        tab3.grid_columnconfigure(1, weight=1)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
+        self.create_tab3(tab3)
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
@@ -362,7 +441,7 @@ class App(ctk.CTk):
     def create_tab2(self, tab):
         # Customer Code
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ - IDM")
+        self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ - INDOMARET")
         self.customer_dropdown_tab2 = ctk.CTkOptionMenu(tab, variable=self.customer_var_tab2, values=[
             "10301014 - LIJ - INDOMARET",
             "10301013 - LIJ - INDOGROSIR",
@@ -372,12 +451,12 @@ class App(ctk.CTk):
             "10900459 - PBJ3 (CERES) - INDOGROSIR",
             "10201750 - PIJ1 - INDOMARET",
             "10201748 - PIJ1 - INDOGROSIR",
-            "11102766 - PIJ2 - INDOMARET",
-            "11102767 - PIJ2 - INDOGROSIR",
-            "30100779 - PBM - INDOGROSIR",
+            "11102767 - PIJ2 - INDOMARET",
+            "11102766 - PIJ2 - INDOGROSIR",
             "30103587 - PBM - INDOMARET",
-            "30200554 - PBM (CERES) - INDOGROSIR",
+            "30100779 - PBM - INDOGROSIR",
             "30200555 - PBM (CERES) - INDOMARET",
+            "30200554 - PBM (CERES) - INDOGROSIR",
             "30703091 - PBI - INDOMARET",
             "30700410 - PBI - INDOGROSIR",
             "30404508 - BI - INDOMARET",
@@ -413,6 +492,39 @@ class App(ctk.CTk):
 
         # Process Button
         ctk.CTkButton(tab, text="Proses", command=process_files_tab2).grid(row=5, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+
+    def create_tab3(self, tab):
+        ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
+        self.farmer_customer_var = ctk.StringVar(value="30103270 - PBM1 (FARMERS/FM SCP)")
+        self.farmer_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.farmer_customer_var, values=[
+            "30103270 - PBM1 (FARMERS/FM SCP)",
+            "30105314 - PBM1 (FARMERS/MESRA INDAI)",
+            "30202092 - PBM2 (FARMERS/FM SCP)",
+            "30203407 - PBM2 (FARMERS/MESRA INDAI)",
+            "30401154 - BI"
+        ])
+        self.farmer_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+
+        ctk.CTkLabel(tab, text="File CSV:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.farmer_csv_entry = ctk.CTkEntry(tab)
+        self.farmer_csv_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        self.farmer_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/PurchaseOrder_3011601648 farmer.csv")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.farmer_csv_entry, "csv")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.farmer_excel_entry = ctk.CTkEntry(tab)
+        self.farmer_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.farmer_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/NKA.xls")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.farmer_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.farmer_output_entry = ctk.CTkEntry(tab)
+        self.farmer_output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.farmer_output_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.farmer_output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        # Process Button
+        ctk.CTkButton(tab, text="Proses", command=process_farmer_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
 
 if __name__ == "__main__":
     app = App()
