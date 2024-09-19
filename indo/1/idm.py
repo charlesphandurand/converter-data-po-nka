@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
+def read_excel_file(file_path, sheet_name):
     try:
         app = xw.App(visible=False)
         book = app.books.open(file_path)
@@ -25,7 +25,14 @@ def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
         book.close()
         app.quit()
         
-        required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
+        if sheet_name == "KODE FARMER" or sheet_name == "KODE ITEM alfa":
+            required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
+        elif sheet_name == "KODE HYPERMAR":
+            required_columns = ["SKU", "KODE AGLIS", "SALESMAN"]
+        else:
+            logging.error(f"Sheet name tidak dikenal: {sheet_name}")
+            return None
+        
         for col in required_columns:
             if col not in data.columns:
                 logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet '{sheet_name}'")
@@ -199,6 +206,102 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
 
     return output_lines
 
+def process_hypermart_files():
+    customer_code = app.hypermart_customer_var.get().split(' - ')[0]
+    csv_files = app.hypermart_csv_entry.get().split(';')
+    excel_file = app.hypermart_excel_entry.get()
+    output_dir = app.hypermart_output_entry.get()
+
+    if not customer_code or not csv_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file, sheet_name="KODE HYPERMAR")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            return
+
+        all_output_lines = []
+        for csv_file in csv_files:
+            output_lines = process_hypermart_csv(csv_file, df_excel)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_hypermart.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
+def process_hypermart_csv(csv_file, df_excel):
+    try:
+        with open(csv_file, 'r') as file:
+            lines = file.readlines()
+        logging.info(f"File CSV berhasil dimuat. Total baris: {len(lines)}")
+    except Exception as e:
+        logging.error(f"Error saat memuat file CSV: {str(e)}")
+        return None
+
+    output_lines = []
+
+    for line in lines:
+        try:
+            columns = line.strip().split(',')
+            
+            if len(columns) < 11:
+                logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {line}")
+                continue
+
+            po_number = columns[0]
+            item_code = columns[6]  # Ini adalah SKU untuk Hypermart
+            po_date = columns[3]
+            quantity = columns[8]
+            not_found = columns[7]
+
+            logging.debug(f"Mencari salesman untuk SKU: {item_code}")
+            salesman = df_excel.loc[df_excel['SKU'] == item_code, 'SALESMAN'].values
+            if len(salesman) > 0 and not pd.isna(salesman[0]):
+                salesman = int(salesman[0])
+            else:
+                salesman = (f"Not Found - {not_found}")
+            logging.debug(f"Hasil pencarian salesman: {salesman}")
+
+            logging.debug(f"Mencari kode aglis untuk SKU: {item_code}")
+            kode_aglis = df_excel.loc[df_excel['SKU'] == item_code, 'KODE AGLIS'].values
+            if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                kode_aglis = int(kode_aglis[0])
+            else:
+                kode_aglis = (f"Not Found - {item_code}")
+            logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
+
+            # Format tanggal
+            formatted_date = datetime.strptime(po_date, "%Y-%m-%d").strftime("%Y%m%d")
+
+            # Format output sesuai dengan yang diinginkan
+            output_line = f"{po_number};{salesman};{formatted_date};{kode_aglis};{quantity}"
+            output_lines.append(output_line)
+        except Exception as e:
+            logging.error(f"Error saat memproses baris: {str(e)}")
+            continue
+
+    return output_lines
+
 def process_files():
     customer_code = app.customer_var.get().split(' - ')[0]
     edi_files = app.edi_entry.get().split(';')
@@ -216,7 +319,7 @@ def process_files():
             df_excel = read_excel_file(excel_file, sheet_name="")
         else:
         # CHECK END
-            df_excel = read_excel_file(excel_file)
+            df_excel = read_excel_file(excel_file, sheet_name="KODE ITEM alfa")
         if df_excel is None:
             messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
             return
@@ -394,14 +497,23 @@ class App(ctk.CTk):
         tab1 = tabview.add("Alfamart/midi")
         tab2 = tabview.add("Indomaret/grosir")
         tab3 = tabview.add("Farmer")
+        tab4 = tabview.add("Hypermart")
+        tab5 = tabview.add("Hero")
+        tab6 = tabview.add("Lotte")
 
         tab1.grid_columnconfigure(1, weight=1)
         tab2.grid_columnconfigure(1, weight=1)
         tab3.grid_columnconfigure(1, weight=1)
+        tab4.grid_columnconfigure(1, weight=1)
+        tab5.grid_columnconfigure(1, weight=1)
+        tab6.grid_columnconfigure(1, weight=1)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
         self.create_tab3(tab3)
+        self.create_tab4(tab4)
+        self.create_tab5(tab5)
+        self.create_tab6(tab6)
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
@@ -525,6 +637,45 @@ class App(ctk.CTk):
 
         # Process Button
         ctk.CTkButton(tab, text="Proses", command=process_farmer_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+
+    def create_tab4(self, tab):
+        ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
+        self.hypermart_customer_var = ctk.StringVar(value="30200527- PBM2 (Hypermart Big Mall)")
+        self.hypermart_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hypermart_customer_var, values=[
+            "30200527- PBM2 (Hypermart Big Mall)",
+            "30400627 - BI (Hypermart Pentacity)",
+            "30404435 - BI (Hypermart Plaza Balikpapan)",
+            "30100729 - PBM1 (Hypermart)",
+            "30100730 - PBM1 (Hypermart Big Mall)",
+        ])
+        self.hypermart_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+
+        ctk.CTkLabel(tab, text="File CSV:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.hypermart_csv_entry = ctk.CTkEntry(tab)
+        self.hypermart_csv_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart/PO_7011024_361 hyper.csv")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.hypermart_csv_entry, "csv")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.hypermart_excel_entry = ctk.CTkEntry(tab)
+        self.hypermart_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart/NKA smd umum.xls")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.hypermart_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.hypermart_output_entry = ctk.CTkEntry(tab)
+        self.hypermart_output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_output_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.hypermart_output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        # Process Button
+        ctk.CTkButton(tab, text="Proses", command=process_hypermart_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+
+    def create_tab5(self, tab):
+        ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
+
+    def create_tab6(self, tab):
+        ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
 
 if __name__ == "__main__":
     app = App()
