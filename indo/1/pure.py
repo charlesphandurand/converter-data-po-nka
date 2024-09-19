@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
-def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
+def read_excel_file(file_path, sheet_name):
     try:
         app = xw.App(visible=False)
         book = app.books.open(file_path)
@@ -25,7 +25,14 @@ def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
         book.close()
         app.quit()
         
-        required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
+        if sheet_name == "KODE FARMER":
+            required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
+        elif sheet_name == "KODE HYPERMAR":
+            required_columns = ["SKU", "KODE AGLIS", "SALESMAN"]
+        else:
+            logging.error(f"Sheet name tidak dikenal: {sheet_name}")
+            return None
+        
         for col in required_columns:
             if col not in data.columns:
                 logging.error(f"Kolom '{col}' tidak ditemukan dalam sheet '{sheet_name}'")
@@ -36,100 +43,6 @@ def read_excel_file(file_path, sheet_name="KODE ITEM alfa"):
     except Exception as e:
         logging.error(f"Error membaca file Excel: {str(e)}")
         return None
-
-def process_edi_file(edi_file, df_excel, customer_code):
-    try:
-        with open(edi_file, 'r') as f:
-            edi_content = f.read()
-        edi_lines = edi_content.split('\n')
-        logging.info(f"File EDI berhasil dimuat. Total baris: {len(edi_lines)}")
-    except Exception as e:
-        logging.error(f"Error saat memuat file EDI: {str(e)}")
-        return None
-
-    output_lines = []
-    pohdr_line = None
-    lin_lines = []
-
-    for line in edi_lines:
-        parts = line.strip().split('|')
-        if parts[0] == 'POHDR':
-            pohdr_line = parts
-        elif parts[0] == 'LIN':
-            lin_lines.append(parts)
-        elif parts[0] == 'TRL':
-            break
-
-    if pohdr_line and lin_lines:
-        try:
-            edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
-            edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
-
-            for lin_line in lin_lines:
-                edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
-
-                salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
-                if len(salesman) > 0 and not pd.isna(salesman[0]):
-                    salesman = int(salesman[0])
-                else:
-                    salesman = 'Not Found'
-
-                kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
-                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                    kode_aglis = int(kode_aglis[0])
-                else:
-                    kode_aglis = 'Not Found'
-
-                lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
-                lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
-
-                calculated_value = lin_value_1 * lin_value_2
-
-                output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
-                output_lines.append(output_line)
-
-        except Exception as e:
-            logging.error(f"Error saat memproses baris: {str(e)}")
-            logging.exception("Traceback:")
-
-    return output_lines
-
-def process_files():
-    customer_code = app.customer_var.get().split(' - ')[0]
-    edi_files = app.edi_entry.get().split(';')
-    excel_file = app.excel_entry.get()
-    output_dir = app.output_entry.get()
-
-    if not customer_code or not edi_files or not excel_file or not output_dir:
-        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
-        return
-
-    try:
-        df_excel = read_excel_file(excel_file)
-        if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
-            return
-
-        all_output_lines = []
-        for edi_file in edi_files:
-            output_lines = process_edi_file(edi_file, df_excel, customer_code)
-            if output_lines:
-                all_output_lines.extend(output_lines)
-
-        if all_output_lines:
-            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            output_file_name = f"{timestamp}_alfa.txt"
-            output_file = os.path.join(output_dir, output_file_name)
-            
-            with open(output_file, 'w') as f:
-                f.write('\n'.join(all_output_lines))
-            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
-        else:
-            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
-    
-    print("Silakan periksa console untuk log detail.")
 
 def process_farmer_files():
     customer_code = app.farmer_customer_var.get().split(' - ')[0]
@@ -225,6 +138,96 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
 
     return output_lines
 
+def process_hypermart_files():
+    customer_code = app.hypermart_customer_var.get().split(' - ')[0]
+    csv_files = app.hypermart_csv_entry.get().split(';')
+    excel_file = app.hypermart_excel_entry.get()
+    output_dir = app.hypermart_output_entry.get()
+
+    if not customer_code or not csv_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        df_excel = read_excel_file(excel_file, sheet_name="KODE HYPERMAR")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            return
+
+        all_output_lines = []
+        for csv_file in csv_files:
+            output_lines = process_hypermart_csv(csv_file, df_excel)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_hypermart.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
+def process_hypermart_csv(csv_file, df_excel):
+    try:
+        with open(csv_file, 'r') as file:
+            lines = file.readlines()
+        logging.info(f"File CSV berhasil dimuat. Total baris: {len(lines)}")
+    except Exception as e:
+        logging.error(f"Error saat memuat file CSV: {str(e)}")
+        return None
+
+    output_lines = []
+
+    for line in lines:
+        try:
+            columns = line.strip().split(',')
+            
+            if len(columns) < 11:
+                logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {line}")
+                continue
+
+            po_number = columns[0]
+            item_code = columns[6]  # Ini adalah SKU untuk Hypermart
+            po_date = columns[3]
+            quantity = columns[8]
+            not_found = columns[7]
+
+            logging.debug(f"Mencari salesman untuk SKU: {item_code}")
+            salesman = df_excel.loc[df_excel['SKU'] == item_code, 'SALESMAN'].values
+            if len(salesman) > 0 and not pd.isna(salesman[0]):
+                salesman = int(salesman[0])
+            else:
+                salesman = (f"Not Found - {not_found}")
+            logging.debug(f"Hasil pencarian salesman: {salesman}")
+
+            logging.debug(f"Mencari kode aglis untuk SKU: {item_code}")
+            kode_aglis = df_excel.loc[df_excel['SKU'] == item_code, 'KODE AGLIS'].values
+            if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                kode_aglis = int(kode_aglis[0])
+            else:
+                kode_aglis = (f"Not Found - {item_code}")
+            logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
+
+            # Format tanggal
+            formatted_date = datetime.strptime(po_date, "%Y-%m-%d").strftime("%Y%m%d")
+
+            # Format output sesuai dengan yang diinginkan
+            output_line = f"{po_number};{salesman};{formatted_date};{kode_aglis};{quantity}"
+            output_lines.append(output_line)
+        except Exception as e:
+            logging.error(f"Error saat memproses baris: {str(e)}")
+            continue
+
+    return output_lines
+
 def browse_files(entry, file_type):
     if file_type == "excel":
         filetypes = [("Excel files", "*.xls *.xlsx")]
@@ -281,7 +284,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(self, text="\xa9 2024 by Charles Phandurand, Converter Data PO v1.0").grid(row=1, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="ew")
 
-        tab1 = tabview.add("Alfamart/midi")
+        tab1 = tabview.add("Hypermart")
         tab2 = tabview.add("Farmer")
         
         tab1.grid_columnconfigure(1, weight=1)
@@ -292,32 +295,35 @@ class App(ctk.CTk):
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var = ctk.StringVar(value="11102761 - PIJ2")
-        self.customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.customer_var, values=[
+        self.hypermart_customer_var = ctk.StringVar(value="11102761 - PIJ2")
+        self.hypermart_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hypermart_customer_var, values=[
             "11102761 - PIJ2",
             "10300732 - LIJ",
             "30404870 - BI (BLP)",
         ])
-        self.customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+        self.hypermart_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
-        ctk.CTkLabel(tab, text="File EDI:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
-        self.edi_entry = ctk.CTkEntry(tab)
-        self.edi_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.edi_entry, "edi")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
+        ctk.CTkLabel(tab, text="File CSV:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.hypermart_csv_entry = ctk.CTkEntry(tab)
+        self.hypermart_csv_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart/PO_7011024_361 hyper.csv")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.hypermart_csv_entry, "csv")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
-        self.excel_entry = ctk.CTkEntry(tab)
-        self.excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
+        self.hypermart_excel_entry = ctk.CTkEntry(tab)
+        self.hypermart_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart/NKA smd umum.xls")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.hypermart_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
-        self.output_entry = ctk.CTkEntry(tab)
-        self.output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
+        self.hypermart_output_entry = ctk.CTkEntry(tab)
+        self.hypermart_output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.hypermart_output_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/hypermart")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.hypermart_output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
 
         # Process Button
-        ctk.CTkButton(tab, text="Proses", command=process_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
-
+        ctk.CTkButton(tab, text="Proses", command=process_hypermart_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+        
     def create_tab2(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
         self.farmer_customer_var = ctk.StringVar(value="11102761 - PIJ2")
