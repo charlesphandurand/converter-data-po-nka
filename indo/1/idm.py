@@ -175,13 +175,14 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
             po_date = columns[26]  # PO Order Date
             order_quantity = columns[11].strip('"')  # Order Quantity, menghilangkan tanda petik
             uom_pack_size = columns[14]  # UOM (Pack Size)
+            barang = columns[19]
 
             logging.debug(f"Mencari salesman untuk barcode: {barcode}")
             salesman = df_excel.loc[df_excel['BARCODE'] == barcode, 'SALESMAN'].values
             if len(salesman) > 0 and not pd.isna(salesman[0]):
                 salesman = int(salesman[0])
             else:
-                salesman = 'Not Found'
+                salesman = (f"[Not Found - {barang}]")
             logging.debug(f"Hasil pencarian salesman: {salesman}")
 
             logging.debug(f"Mencari kode aglis untuk barcode: {barcode}")
@@ -190,7 +191,7 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
             if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
                 kode_aglis = int(kode_aglis[0])
             else:
-                kode_aglis = 'Not Found'
+                kode_aglis = (f"[Not Found - {barcode}]")
             logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
 
             pcs = int(order_quantity)*int(uom_pack_size)
@@ -279,7 +280,7 @@ def process_hypermart_csv(csv_file, df_excel):
             if len(salesman) > 0 and not pd.isna(salesman[0]):
                 salesman = int(salesman[0])
             else:
-                salesman = (f"Not Found - {not_found}")
+                salesman = (f"[Not Found - {not_found}]")
             logging.debug(f"Hasil pencarian salesman: {salesman}")
 
             logging.debug(f"Mencari kode aglis untuk SKU: {item_code}")
@@ -287,7 +288,7 @@ def process_hypermart_csv(csv_file, df_excel):
             if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
                 kode_aglis = int(kode_aglis[0])
             else:
-                kode_aglis = (f"Not Found - {item_code}")
+                kode_aglis = (f"[Not Found - {item_code}]")
             logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
 
             # Format tanggal
@@ -517,18 +518,18 @@ class App(ctk.CTk):
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var = ctk.StringVar(value="10300732 - LIJ")
+        self.customer_var = ctk.StringVar(value="30200072 - PBM2")
         self.customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.customer_var, values=[
-            "10300732 - LIJ",
-            "10102225 - PBJ1 (KOPI)",
-            "10900081 - PBJ3 (CERES)",
-            "10201214 - PIJ1",
-            "11102761 - PIJ2",
-            "11401051 - UJI2", 
-            "30100104 - PBM1",
+            # "10300732 - LIJ",
+            # "10102225 - PBJ1 (KOPI)",
+            # "10900081 - PBJ3 (CERES)",
+            # "10201214 - PIJ1",
+            # "11102761 - PIJ2",
+            # "11401051 - UJI2", 
+            # "30100104 - PBM1",
             "30200072 - PBM2",
-            "30404870 - BI (BLP)",
-            "30700059 - PBI (SMD)"
+            # "30404870 - BI (BLP)",
+            # "30700059 - PBI (SMD)"
         ])
         self.customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
@@ -553,26 +554,28 @@ class App(ctk.CTk):
     def create_tab2(self, tab):
         # Customer Code
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.customer_var_tab2 = ctk.StringVar(value="10301014 - LIJ - INDOMARET")
+        self.customer_var_tab2 = ctk.StringVar(value="30200555 - PBM2 - INDOMARET")
         self.customer_dropdown_tab2 = ctk.CTkOptionMenu(tab, variable=self.customer_var_tab2, values=[
-            "10301014 - LIJ - INDOMARET",
-            "10301013 - LIJ - INDOGROSIR",
-            "10102324 - PBJ1 (KOPI) - INDOMARET",
-            "10102323 - PBJ1 (KOPI) - INDOGROSIR",
-            "10900458 - PBJ3 (CERES) - INDOMARET",
-            "10900459 - PBJ3 (CERES) - INDOGROSIR",
-            "10201750 - PIJ1 - INDOMARET",
-            "10201748 - PIJ1 - INDOGROSIR",
-            "11102767 - PIJ2 - INDOMARET",
-            "11102766 - PIJ2 - INDOGROSIR",
-            "30103587 - PBM - INDOMARET",
-            "30100779 - PBM - INDOGROSIR",
-            "30200555 - PBM (CERES) - INDOMARET",
-            "30200554 - PBM (CERES) - INDOGROSIR",
-            "30703091 - PBI - INDOMARET",
-            "30700410 - PBI - INDOGROSIR",
-            "30404508 - BI - INDOMARET",
-            "30404913 - BI - INDOGROSIR",
+            # "10301014 - LIJ - INDOMARET",
+            # "10301013 - LIJ - INDOGROSIR",
+            # "10102324 - PBJ1 (KOPI) - INDOMARET",
+            # "10102323 - PBJ1 (KOPI) - INDOGROSIR",
+            # "10900458 - PBJ3 (CERES) - INDOMARET",
+            # "10900459 - PBJ3 (CERES) - INDOGROSIR",
+            # "10201750 - PIJ1 - INDOMARET",
+            # "10201748 - PIJ1 - INDOGROSIR",
+            # "11102767 - PIJ2 - INDOMARET",
+            # "11102766 - PIJ2 - INDOGROSIR",
+            # "30103587 - PBM1 - INDOMARET",
+            # "30100779 - PBM1 - INDOGROSIR",
+            # "30200555 - PBM1 (CERES) - INDOMARET",
+            # "30200554 - PBM1 (CERES) - INDOGROSIR",
+            "30200555 - PBM2 - INDOMARET",
+            "30200554 - PBM2 - INDOGROSIR",
+            # "30703091 - PBI - INDOMARET",
+            # "30700410 - PBI - INDOGROSIR",
+            # "30404508 - BI - INDOMARET",
+            # "30404913 - BI - INDOGROSIR",
         ])
         self.customer_dropdown_tab2.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
         
@@ -607,13 +610,13 @@ class App(ctk.CTk):
 
     def create_tab3(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.farmer_customer_var = ctk.StringVar(value="30103270 - PBM1 (FARMERS/FM SCP)")
+        self.farmer_customer_var = ctk.StringVar(value="30202092 - PBM2 (FARMERS/FM SCP)")
         self.farmer_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.farmer_customer_var, values=[
-            "30103270 - PBM1 (FARMERS/FM SCP)",
-            "30105314 - PBM1 (FARMERS/MESRA INDAI)",
+            # "30103270 - PBM1 (FARMERS/FM SCP)",
+            # "30105314 - PBM1 (FARMERS/MESRA INDAI)",
             "30202092 - PBM2 (FARMERS/FM SCP)",
             "30203407 - PBM2 (FARMERS/MESRA INDAI)",
-            "30401154 - BI"
+            # "30401154 - BI"
         ])
         self.farmer_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
@@ -640,13 +643,14 @@ class App(ctk.CTk):
 
     def create_tab4(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.hypermart_customer_var = ctk.StringVar(value="30200527- PBM2 (Hypermart Big Mall)")
+        self.hypermart_customer_var = ctk.StringVar(value="30200527 - PBM2 - (Hypermart Big Mall)")
         self.hypermart_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hypermart_customer_var, values=[
-            "30200527- PBM2 (Hypermart Big Mall)",
-            "30400627 - BI (Hypermart Pentacity)",
-            "30404435 - BI (Hypermart Plaza Balikpapan)",
-            "30100729 - PBM1 (Hypermart)",
-            "30100730 - PBM1 (Hypermart Big Mall)",
+            # "30200527- PBM2 (Hypermart Big Mall)",
+            # "30400627 - BI (Hypermart Pentacity)",
+            # "30404435 - BI (Hypermart Plaza Balikpapan)",
+            # "30101002 - PBM1 (Hypermart - Matahari Putra Prima)",
+            # "30100730 - PBM1 (Hypermart Big Mall)",
+            "30200527 - PBM2 - (Hypermart Big Mall)",
         ])
         self.hypermart_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
 
