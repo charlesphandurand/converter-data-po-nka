@@ -767,7 +767,7 @@ class App(ctk.CTk):
 
     def create_tab5(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
-        self.hero_customer_var = ctk.StringVar(value="11102761 - PIJ2")
+        self.hero_customer_var = ctk.StringVar(value="30400599 - BI (BLP - Hero)")
         self.hero_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hero_customer_var, values=[
             "30400599 - BI (BLP - Hero)",
         ])
