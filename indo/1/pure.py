@@ -130,25 +130,35 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
     
     try:
         with open(csv_file, 'r', newline='', encoding='utf-8-sig') as file:
-            content = file.read().replace('"', '')  # Menghapus semua tanda kutip ganda
-            csv_reader = csv.reader(content.splitlines(), delimiter=',')
+            csv_reader = csv.reader(file, quotechar='"', delimiter=',', quoting=csv.QUOTE_MINIMAL)
             next(csv_reader)  # Skip header row
             
             for row in csv_reader:
-                if len(row) < 27:
+                logging.debug(f"Raw row: {row}")
+                
+                # Jika baris hanya memiliki satu elemen, itu mungkin karena pemisahan yang salah
+                if len(row) == 1:
+                    row = row[0].split(',')
+                
+                if len(row) < 15:  # Memastikan baris memiliki minimal 15 kolom
                     logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {row}")
                     continue
                 
                 po_number = row[0].strip()
-                barcode = row[10].strip()
-                po_date = row[26].strip()
-                order_quantity = row[11].strip().replace(',', '.')  # Handle decimal comma
-                uom_pack_size = row[14].strip()
-                barang = row[19].strip()
+                barcode = row[10].strip() if len(row) > 10 else ""
+                po_date = row[-1].strip()  # Mengambil elemen terakhir sebagai tanggal PO
+                order_quantity = row[11].strip().replace('"', '').replace(',', '.') if len(row) > 11 else "0"
+                uom_pack_size = row[13].strip() if len(row) > 13 else "1"
+                barang = row[18].strip() if len(row) > 18 else ""
+                
+                logging.debug(f"Extracted values: PO: {po_number}, Barcode: {barcode}, Date: {po_date}, Qty: {order_quantity}, UOM: {uom_pack_size}, Barang: {barang}")
                 
                 try:
                     order_quantity = float(order_quantity)
-                    uom_pack_size = int(uom_pack_size)
+                    if uom_pack_size.upper() == 'KAR':
+                        uom_pack_size = 12  # Asumsi 1 KAR = 12 unit
+                    else:
+                        uom_pack_size = int(uom_pack_size)
                 except ValueError:
                     logging.error(f"Invalid order quantity or UOM pack size: {order_quantity}, {uom_pack_size}")
                     continue
@@ -176,6 +186,7 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
     
     except Exception as e:
         logging.error(f"Error saat memproses file CSV: {str(e)}")
+        logging.exception("Traceback lengkap:")
     
     return output_lines
 
@@ -197,9 +208,11 @@ def process_farmer_files():
 
         all_output_lines = []
         for i, csv_file in enumerate(csv_files, 1):
+            logging.info(f"Memproses file CSV: {csv_file}")
             output_lines = process_csv_file(csv_file, df_excel, customer_code, i)
             if output_lines:
                 all_output_lines.extend(output_lines)
+            logging.info(f"Jumlah baris yang berhasil diproses dari file {csv_file}: {len(output_lines)}")
 
         if all_output_lines:
             timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
@@ -208,9 +221,9 @@ def process_farmer_files():
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(all_output_lines))
-            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}\nTotal baris yang diproses: {len(all_output_lines)}")
         else:
-            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+            messagebox.showwarning("Peringatan", "Tidak ada data yang berhasil diproses dari semua file.")
     except Exception as e:
         messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
     
@@ -296,7 +309,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(tab, text="File CSV:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.farmer_csv_entry = ctk.CTkEntry(tab)
         self.farmer_csv_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        self.farmer_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/PurchaseOrder_3011601648 farmer.csv")
+        self.farmer_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/biPurchaseOrder_3011714349.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm1PurchaseOrder_3011722749 t.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm1PurchaseOrderBatch_20240927094223.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm2PurchaseOrder_3011601648 farmer - Copy.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm2PurchaseOrder_3011601648 farmer.csv")
         ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.farmer_csv_entry, "csv")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
