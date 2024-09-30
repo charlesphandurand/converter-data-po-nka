@@ -234,7 +234,7 @@ def process_hypermart_files():
 
         all_output_lines = []
         for csv_file in csv_files:
-            output_lines = process_hypermart_csv(csv_file, df_excel)
+            output_lines = process_hypermart_csv(csv_file, df_excel, customer_code)
             if output_lines:
                 all_output_lines.extend(output_lines)
 
@@ -253,7 +253,7 @@ def process_hypermart_files():
     
     print("Silakan periksa console untuk log detail.")
 
-def process_hypermart_csv(csv_file, df_excel):
+def process_hypermart_csv(csv_file, df_excel, customer_code):
     try:
         with open(csv_file, 'r') as file:
             lines = file.readlines()
@@ -298,7 +298,7 @@ def process_hypermart_csv(csv_file, df_excel):
             formatted_date = datetime.strptime(po_date, "%Y-%m-%d").strftime("%Y%m%d")
 
             # Format output sesuai dengan yang diinginkan
-            output_line = f"{po_number};{salesman};{formatted_date};{kode_aglis};{quantity}"
+            output_line = f"{po_number};{customer_code};{salesman};{formatted_date};{kode_aglis};{quantity}"
             output_lines.append(output_line)
         except Exception as e:
             logging.error(f"Error saat memproses baris: {str(e)}")
@@ -589,22 +589,22 @@ class App(ctk.CTk):
         tab2 = tabview.add("Indomaret/grosir")
         tab3 = tabview.add("Farmer")
         tab4 = tabview.add("Hypermart")
-        tab5 = tabview.add("Hero")
-        tab6 = tabview.add("Lotte")
+        # tab5 = tabview.add("Hero")
+        # tab6 = tabview.add("Lotte")
 
         tab1.grid_columnconfigure(1, weight=1)
         tab2.grid_columnconfigure(1, weight=1)
         tab3.grid_columnconfigure(1, weight=1)
         tab4.grid_columnconfigure(1, weight=1)
-        tab5.grid_columnconfigure(1, weight=1)
-        tab6.grid_columnconfigure(1, weight=1)
+        # tab5.grid_columnconfigure(1, weight=1)
+        # tab6.grid_columnconfigure(1, weight=1)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
         self.create_tab3(tab3)
         self.create_tab4(tab4)
-        self.create_tab5(tab5)
-        self.create_tab6(tab6)
+        # self.create_tab5(tab5)
+        # self.create_tab6(tab6)
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
@@ -736,7 +736,8 @@ class App(ctk.CTk):
         self.hypermart_customer_var = ctk.StringVar(value="30400627 - BI (Hypermart Pentacity)")
         self.hypermart_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hypermart_customer_var, values=[
             "30400627 - BI (Hypermart Pentacity)",
-            "30404435 - BI (Hypermart Plaza Balikpapan)",
+            "30404435 - BI (Foodmart Supermarket Balikpapan)",
+            "30404436 - BI (Hypermart Plaza Balikpapan)"
             # "30101002 - PBM1 (Hypermart - Matahari Putra Prima)",
             # "30100730 - PBM1 (Hypermart Big Mall)",
             # "30200527 - PBM2 - (Hypermart Big Mall)",
