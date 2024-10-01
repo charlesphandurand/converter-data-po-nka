@@ -104,6 +104,49 @@ def process_edi_file(edi_file, df_excel, customer_code):
 
     return output_lines
 
+def process_alfamart():
+    customer_code = app.customer_var.get().split(' - ')[0]
+    edi_files = app.edi_entry.get().split(';')
+    excel_file = app.excel_entry.get()
+    output_dir = app.output_entry.get()
+
+    if not customer_code or not edi_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file, sheet_name="KODE ITEM alfa")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
+            return
+
+        all_output_lines = []
+        for edi_file in edi_files:
+            output_lines = process_edi_file(edi_file, df_excel, customer_code)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_alfa.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
 def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     output_lines = []
     with open(txt_file, 'r') as f:
@@ -152,95 +195,41 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
     
     return output_lines
 
-def process_csv_file(csv_file, df_excel, customer_code, file_number):
-    try:
-        # Membaca file CSV mulai dari baris kedua
-        df_csv = pd.read_csv(csv_file, header=None, skiprows=1, dtype=str)
-        logging.info(f"File CSV berhasil dimuat. Total baris: {len(df_csv)}")
-    except Exception as e:
-        logging.error(f"Error saat memuat file CSV: {str(e)}")
-        return None
+def process_indomaret():
+    customer_code = app.customer_var_tab2.get().split(' - ')[0]
+    txt_files = app.txt_entry.get().split(';')
+    excel_file = app.excel_entry_tab2.get()
+    output_dir = app.output_entry_tab2.get()
+    # CHECK START
+    current_date = datetime.now()
+    if current_date >= datetime(2026, 1, 1):
+        sheet_name = "" if app.indomaret_var.get() else ""
+    else:
+    # CHECK END
+        sheet_name = "KODE INDOM" if app.indomaret_var.get() else "kode indoG"
 
-    output_lines = []
-
-    for _, row in df_csv.iterrows():
-        try:
-            # Memisahkan data dalam satu kolom menjadi beberapa kolom berdasarkan koma
-            columns = row[0].split(',')
-
-            # Pastikan jumlah kolom sesuai dengan yang diharapkan
-            if len(columns) < 26:
-                logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {row[0]}")
-                continue
-            
-            po_number = columns[0]  # Purchase Order Number
-            barcode = columns[10]  # Item Barcode
-            po_date = columns[26]  # PO Order Date
-            order_quantity = columns[11].strip('"')  # Order Quantity, menghilangkan tanda petik
-            uom_pack_size = columns[14]  # UOM (Pack Size)
-            barang = columns[19]
-
-            logging.debug(f"Mencari salesman untuk barcode: {barcode}")
-            salesman = df_excel.loc[df_excel['BARCODE'] == barcode, 'SALESMAN'].values
-            if len(salesman) > 0 and not pd.isna(salesman[0]):
-                salesman = int(salesman[0])
-            else:
-                salesman = (f"[Not Found - {barang}]")
-            logging.debug(f"Hasil pencarian salesman: {salesman}")
-
-            logging.debug(f"Mencari kode aglis untuk barcode: {barcode}")
-            # Pencarian kode aglis
-            kode_aglis = df_excel.loc[df_excel['BARCODE'] == barcode, 'KODE AGLIS'].values
-            if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
-                kode_aglis = int(kode_aglis[0])
-            else:
-                kode_aglis = (f"[Not Found - {barcode}]")
-            logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
-
-            pcs = int(order_quantity)*int(uom_pack_size)
-            # Format output sesuai dengan yang diinginkan
-            output_line = f"{po_number};{customer_code};{salesman};{po_date};{kode_aglis};{pcs}"
-            output_lines.append(output_line)
-        except KeyError as e:
-            logging.error(f"Error saat memproses baris: {str(e)}")
-            continue
-        except Exception as e:
-            logging.error(f"Error saat memproses baris: {str(e)}")
-            continue
-
-    return output_lines
-
-def process_hypermart_files():
-    customer_code = app.hypermart_customer_var.get().split(' - ')[0]
-    csv_files = app.hypermart_csv_entry.get().split(';')
-    excel_file = app.hypermart_excel_entry.get()
-    output_dir = app.hypermart_output_entry.get()
-
-    if not customer_code or not csv_files or not excel_file or not output_dir:
+    if not customer_code or not txt_files or not excel_file or not output_dir:
         messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
         return
 
     try:
-        # CHECK START
-        current_date = datetime.now()
-        if current_date >= datetime(2026, 1, 1):
-            df_excel = read_excel_file(excel_file, sheet_name="")
-        else:
-        # CHECK END
-            df_excel = read_excel_file(excel_file, sheet_name="KODE HYPERMART")
-        if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
-            return
+        excel_app = xw.App(visible=False)
+        book = excel_app.books.open(excel_file)
+        sheet = book.sheets[sheet_name]
+        df_excel = sheet.used_range.options(pd.DataFrame, index=False, header=True).value
+        book.close()
+        excel_app.quit()
 
         all_output_lines = []
-        for csv_file in csv_files:
-            output_lines = process_hypermart_csv(csv_file, df_excel, customer_code)
+        for txt_file in txt_files:
+            output_lines = process_txt_file(txt_file, df_excel, customer_code, sheet_name)
             if output_lines:
                 all_output_lines.extend(output_lines)
 
         if all_output_lines:
             timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            output_file_name = f"{timestamp}_hypermart.txt"
+            maret_or_grosir = "indomaret" if app.indomaret_var.get() else "indogrosir"
+            output_file_name = f"{timestamp}_{maret_or_grosir}.txt"
             output_file = os.path.join(output_dir, output_file_name)
             
             with open(output_file, 'w') as f:
@@ -248,6 +237,124 @@ def process_hypermart_files():
             messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
         else:
             messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+    logging.info("Proses selesai. Silakan periksa log untuk detail ekstraksi data.")
+
+def process_farmer_csv(csv_file, df_excel, customer_code, file_number):
+    output_lines = []
+    
+    try:
+        with open(csv_file, 'r', newline='', encoding='utf-8-sig') as file:
+            csv_reader = csv.reader(file, quotechar='"', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            next(csv_reader)  # Skip header row
+            
+            for row in csv_reader:
+                logging.debug(f"Raw row: {row}")
+                
+                # Jika baris hanya memiliki satu elemen, itu mungkin karena pemisahan yang salah
+                if len(row) == 1:
+                    row = row[0].split(',')
+                
+                # Menggabungkan kembali elemen yang mungkin terpisah karena tanda kutip
+                merged_row = []
+                merge_next = False
+                for item in row:
+                    if merge_next:
+                        merged_row[-1] += "," + item.strip('"')
+                        if item.endswith('"'):
+                            merge_next = False
+                    elif item.startswith('"') and not item.endswith('"'):
+                        merged_row.append(item.strip('"'))
+                        merge_next = True
+                    else:
+                        merged_row.append(item.strip('"'))
+                
+                row = merged_row
+                
+                if len(row) < 15:  # Memastikan baris memiliki minimal 15 kolom
+                    logging.error(f"Baris tidak memiliki jumlah kolom yang cukup: {row}")
+                    continue
+                
+                po_number = row[0].strip()
+                barcode = row[10].strip() if len(row) > 10 else ""
+                po_date = row[-1].strip()  # Mengambil elemen terakhir sebagai tanggal PO
+                order_quantity = row[11].strip().replace('"', '').replace(',', '.') if len(row) > 11 else "0"
+                uom_pack_size = row[13].strip() if len(row) > 12 else "1"
+                barang = row[18].strip() if len(row) > 18 else ""
+                
+                logging.debug(f"Extracted values: PO: {po_number}, Barcode: {barcode}, Date: {po_date}, Qty: {order_quantity}, UOM: {uom_pack_size}, Barang: {barang}")
+                
+                try:
+                    order_quantity = float(order_quantity)
+                    uom_pack_size = int(uom_pack_size)
+                except ValueError:
+                    logging.error(f"Invalid order quantity or UOM pack size: {order_quantity}, {uom_pack_size}")
+                    continue
+                
+                logging.debug(f"Mencari salesman untuk barcode: {barcode}")
+                salesman = df_excel.loc[df_excel['BARCODE'] == barcode, 'SALESMAN'].values
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = f"[Not Found - {barang}]"
+                logging.debug(f"Hasil pencarian salesman: {salesman}")
+                
+                logging.debug(f"Mencari kode aglis untuk barcode: {barcode}")
+                kode_aglis = df_excel.loc[df_excel['BARCODE'] == barcode, 'KODE AGLIS'].values
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = f"[Not Found - {barcode}]"
+                logging.debug(f"Hasil pencarian kode aglis: {kode_aglis}")
+                
+                pcs = int(order_quantity * uom_pack_size)
+                output_line = f"{po_number};{customer_code};{salesman};{po_date};{kode_aglis};{pcs}"
+                output_lines.append(output_line)
+                logging.info(f"Baris berhasil diproses: {output_line}")
+    
+    except Exception as e:
+        logging.error(f"Error saat memproses file CSV: {str(e)}")
+        logging.exception("Traceback lengkap:")
+    
+    return output_lines
+
+def process_farmer_files():
+    customer_code = app.farmer_customer_var.get().split(' - ')[0]
+    csv_files = app.farmer_csv_entry.get().split(';')
+    excel_file = app.farmer_excel_entry.get()
+    output_dir = app.farmer_output_entry.get()
+
+    if not customer_code or not csv_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            return
+
+        all_output_lines = []
+        for i, csv_file in enumerate(csv_files, 1):
+            logging.info(f"Memproses file CSV: {csv_file}")
+            output_lines = process_farmer_csv(csv_file, df_excel, customer_code, i)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+            logging.info(f"Jumlah baris yang berhasil diproses dari file {csv_file}: {len(output_lines)}")
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_farmer.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}\nTotal baris yang diproses: {len(all_output_lines)}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang berhasil diproses dari semua file.")
     except Exception as e:
         messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
     
@@ -306,102 +413,11 @@ def process_hypermart_csv(csv_file, df_excel, customer_code):
 
     return output_lines
 
-def process_files():
-    customer_code = app.customer_var.get().split(' - ')[0]
-    edi_files = app.edi_entry.get().split(';')
-    excel_file = app.excel_entry.get()
-    output_dir = app.output_entry.get()
-
-    if not customer_code or not edi_files or not excel_file or not output_dir:
-        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
-        return
-
-    try:
-        # CHECK START
-        current_date = datetime.now()
-        if current_date >= datetime(2026, 1, 1):
-            df_excel = read_excel_file(excel_file, sheet_name="")
-        else:
-        # CHECK END
-            df_excel = read_excel_file(excel_file, sheet_name="KODE ITEM alfa")
-        if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
-            return
-
-        all_output_lines = []
-        for edi_file in edi_files:
-            output_lines = process_edi_file(edi_file, df_excel, customer_code)
-            if output_lines:
-                all_output_lines.extend(output_lines)
-
-        if all_output_lines:
-            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            output_file_name = f"{timestamp}_alfa.txt"
-            output_file = os.path.join(output_dir, output_file_name)
-            
-            with open(output_file, 'w') as f:
-                f.write('\n'.join(all_output_lines))
-            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
-        else:
-            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
-    
-    print("Silakan periksa console untuk log detail.")
-
-def process_files_tab2():
-    customer_code = app.customer_var_tab2.get().split(' - ')[0]
-    txt_files = app.txt_entry.get().split(';')
-    excel_file = app.excel_entry_tab2.get()
-    output_dir = app.output_entry_tab2.get()
-    # CHECK START
-    current_date = datetime.now()
-    if current_date >= datetime(2026, 1, 1):
-        sheet_name = "" if app.indomaret_var.get() else ""
-    else:
-    # CHECK END
-        sheet_name = "KODE INDOM" if app.indomaret_var.get() else "kode indoG"
-
-    if not customer_code or not txt_files or not excel_file or not output_dir:
-        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
-        return
-
-    try:
-        excel_app = xw.App(visible=False)
-        book = excel_app.books.open(excel_file)
-        sheet = book.sheets[sheet_name]
-        df_excel = sheet.used_range.options(pd.DataFrame, index=False, header=True).value
-        book.close()
-        excel_app.quit()
-
-        all_output_lines = []
-        for txt_file in txt_files:
-            output_lines = process_txt_file(txt_file, df_excel, customer_code, sheet_name)
-            if output_lines:
-                all_output_lines.extend(output_lines)
-
-        if all_output_lines:
-            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            maret_or_grosir = "indomaret" if app.indomaret_var.get() else "indogrosir"
-            output_file_name = f"{timestamp}_{maret_or_grosir}.txt"
-            output_file = os.path.join(output_dir, output_file_name)
-            
-            with open(output_file, 'w') as f:
-                f.write('\n'.join(all_output_lines))
-            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
-        else:
-            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
-    
-    print("Silakan periksa console untuk log detail.")
-    logging.info("Proses selesai. Silakan periksa log untuk detail ekstraksi data.")
-
-def process_farmer_files():
-    customer_code = app.farmer_customer_var.get().split(' - ')[0]
-    csv_files = app.farmer_csv_entry.get().split(';')
-    excel_file = app.farmer_excel_entry.get()
-    output_dir = app.farmer_output_entry.get()
+def process_hypermart_files():
+    customer_code = app.hypermart_customer_var.get().split(' - ')[0]
+    csv_files = app.hypermart_csv_entry.get().split(';')
+    excel_file = app.hypermart_excel_entry.get()
+    output_dir = app.hypermart_output_entry.get()
 
     if not customer_code or not csv_files or not excel_file or not output_dir:
         messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
@@ -414,63 +430,20 @@ def process_farmer_files():
             df_excel = read_excel_file(excel_file, sheet_name="")
         else:
         # CHECK END
-            df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
-        if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
-            return
-
-        all_output_lines = []
-        for i, csv_file in enumerate(csv_files, 1):
-            output_lines = process_csv_file(csv_file, df_excel, customer_code, i)
-            if output_lines:
-                all_output_lines.extend(output_lines)
-
-        if all_output_lines:
-            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            output_file_name = f"{timestamp}_farmer.txt"
-            output_file = os.path.join(output_dir, output_file_name)
-            
-            with open(output_file, 'w') as f:
-                f.write('\n'.join(all_output_lines))
-            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
-        else:
-            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
-    
-    print("Silakan periksa console untuk log detail.")
-
-def process_hero_files():
-    customer_code = app.hero_customer_var.get().split(' - ')[0]
-    csv_files = app.hero_csv_entry.get().split(';')
-    excel_file = app.hero_excel_entry.get()
-    output_dir = app.hero_output_entry.get()
-
-    if not customer_code or not csv_files or not excel_file or not output_dir:
-        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
-        return
-
-    try:
-        # CHECK START
-        current_date = datetime.now()
-        if current_date >= datetime(2026, 1, 1):
-            df_excel = read_excel_file(excel_file, sheet_name="")
-        else:
-        # CHECK END
-            df_excel = read_excel_file(excel_file, sheet_name="KODE HERO")
+            df_excel = read_excel_file(excel_file, sheet_name="KODE HYPERMART")
         if df_excel is None:
             messagebox.showerror("Error", "Gagal membaca file Excel.")
             return
 
         all_output_lines = []
         for csv_file in csv_files:
-            output_lines = process_hero_csv(csv_file, df_excel, customer_code)
+            output_lines = process_hypermart_csv(csv_file, df_excel, customer_code)
             if output_lines:
                 all_output_lines.extend(output_lines)
 
         if all_output_lines:
             timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
-            output_file_name = f"{timestamp}_hero.txt"
+            output_file_name = f"{timestamp}_hypermart.txt"
             output_file = os.path.join(output_dir, output_file_name)
             
             with open(output_file, 'w') as f:
@@ -482,7 +455,6 @@ def process_hero_files():
         messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
     
     print("Silakan periksa console untuk log detail.")
-
 
 def process_hero_csv(csv_file, df_excel, customer_code):
     output_lines = []
@@ -639,7 +611,7 @@ class App(ctk.CTk):
         ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
 
         # Process Button
-        ctk.CTkButton(tab, text="Proses", command=process_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+        ctk.CTkButton(tab, text="Proses", command=process_alfamart).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
 
     def create_tab2(self, tab):
         # Customer Code
@@ -696,7 +668,7 @@ class App(ctk.CTk):
         ctk.CTkRadioButton(radio_frame, text="Indogrosir", variable=self.indomaret_var, value=False).pack(side="left")
 
         # Process Button
-        ctk.CTkButton(tab, text="Proses", command=process_files_tab2).grid(row=5, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
+        ctk.CTkButton(tab, text="Proses", command=process_indomaret).grid(row=5, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
 
     def create_tab3(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
@@ -713,13 +685,13 @@ class App(ctk.CTk):
         ctk.CTkLabel(tab, text="File CSV:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.farmer_csv_entry = ctk.CTkEntry(tab)
         self.farmer_csv_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        self.farmer_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/PurchaseOrder_3011601648 farmer.csv")
+        self.farmer_csv_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/biPurchaseOrder_3011714349.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm1PurchaseOrder_3011722749 t.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm1PurchaseOrderBatch_20240927094223.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm2PurchaseOrder_3011601648 farmer - Copy.csv;C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/pbm2PurchaseOrder_3011601648 farmer.csv")
         ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.farmer_csv_entry, "csv")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
         self.farmer_excel_entry = ctk.CTkEntry(tab)
         self.farmer_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
-        self.farmer_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/NKA.xls")
+        self.farmer_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/farmer/NKA smd umum.xls")
         ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.farmer_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
 
         ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")

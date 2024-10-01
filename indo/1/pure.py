@@ -164,17 +164,14 @@ def process_csv_file(csv_file, df_excel, customer_code, file_number):
                 barcode = row[10].strip() if len(row) > 10 else ""
                 po_date = row[-1].strip()  # Mengambil elemen terakhir sebagai tanggal PO
                 order_quantity = row[11].strip().replace('"', '').replace(',', '.') if len(row) > 11 else "0"
-                uom_pack_size = row[12].strip() if len(row) > 12 else "1"
+                uom_pack_size = row[13].strip() if len(row) > 12 else "1"
                 barang = row[18].strip() if len(row) > 18 else ""
                 
                 logging.debug(f"Extracted values: PO: {po_number}, Barcode: {barcode}, Date: {po_date}, Qty: {order_quantity}, UOM: {uom_pack_size}, Barang: {barang}")
                 
                 try:
                     order_quantity = float(order_quantity)
-                    if uom_pack_size.upper() == 'KAR':
-                        uom_pack_size = 99999  # Asumsi 1 KAR = 24 unit untuk kasus ini
-                    else:
-                        uom_pack_size = int(uom_pack_size)
+                    uom_pack_size = int(uom_pack_size)
                 except ValueError:
                     logging.error(f"Invalid order quantity or UOM pack size: {order_quantity}, {uom_pack_size}")
                     continue
