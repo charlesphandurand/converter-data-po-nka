@@ -499,6 +499,49 @@ def process_hero_csv(csv_file, df_excel, customer_code):
 
     return output_lines
 
+def process_hero_files():
+    customer_code = app.hero_customer_var.get().split(' - ')[0]
+    csv_files = app.hero_csv_entry.get().split(';')
+    excel_file = app.hero_excel_entry.get()
+    output_dir = app.hero_output_entry.get()
+
+    if not customer_code or not csv_files or not excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file, sheet_name="KODE HERO")
+        if df_excel is None:
+            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            return
+
+        all_output_lines = []
+        for csv_file in csv_files:
+            output_lines = process_hero_csv(csv_file, df_excel, customer_code)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_hero.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
 def browse_files(entry, file_type):
     if file_type == "excel":
         filetypes = [("Excel files", "*.xls *.xlsx")]
@@ -561,22 +604,22 @@ class App(ctk.CTk):
         tab2 = tabview.add("Indomaret/grosir")
         tab3 = tabview.add("Farmer")
         tab4 = tabview.add("Hypermart")
-        # tab5 = tabview.add("Hero")
-        # tab6 = tabview.add("Lotte")
+        tab5 = tabview.add("Hero")
+        tab6 = tabview.add("Lotte")
 
         tab1.grid_columnconfigure(1, weight=1)
         tab2.grid_columnconfigure(1, weight=1)
         tab3.grid_columnconfigure(1, weight=1)
         tab4.grid_columnconfigure(1, weight=1)
-        # tab5.grid_columnconfigure(1, weight=1)
-        # tab6.grid_columnconfigure(1, weight=1)
+        tab5.grid_columnconfigure(1, weight=1)
+        tab6.grid_columnconfigure(1, weight=1)
 
         self.create_tab1(tab1)
         self.create_tab2(tab2)
         self.create_tab3(tab3)
         self.create_tab4(tab4)
-        # self.create_tab5(tab5)
-        # self.create_tab6(tab6)
+        self.create_tab5(tab5)
+        self.create_tab6(tab6)
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
