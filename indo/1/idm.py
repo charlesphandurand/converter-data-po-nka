@@ -30,6 +30,8 @@ def read_excel_file(file_path, sheet_name):
             required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         elif sheet_name == "KODE HYPERMART":
             required_columns = ["SKU", "KODE AGLIS", "SALESMAN"]
+        elif sheet_name == "KODE LOTTE":
+            required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         elif sheet_name == "KODE HERO":
             required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         else:
@@ -72,30 +74,31 @@ def process_edi_file(edi_file, df_excel, customer_code):
 
     if pohdr_line and lin_lines:
         try:
-            edi_1 = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
-            edi_3 = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
+            no_po = pohdr_line[1] if len(pohdr_line) > 1 else 'Unknown'
+            tgl_po = pohdr_line[2] if len(pohdr_line) > 2 else 'Unknown'
 
             for lin_line in lin_lines:
-                edi_6_lin = lin_line[5] if len(lin_line) > 5 else 'Unknown'
-
-                salesman = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'SALESMAN'].values
+                kode_item = lin_line[5] if len(lin_line) > 5 else 'Unknown'
+                barang = lin_line[1].split(';')[0].strip() if len(lin_line) > 1 else 'Unknown'
+                
+                salesman = df_excel.loc[df_excel['BARCODE'] == kode_item, 'SALESMAN'].values
                 if len(salesman) > 0 and not pd.isna(salesman[0]):
                     salesman = int(salesman[0])
                 else:
-                    salesman = 'Not Found'
+                    salesman = f"[Not Found - {barang}]"
 
-                kode_aglis = df_excel.loc[df_excel['BARCODE'] == edi_6_lin, 'KODE AGLIS'].values
+                kode_aglis = df_excel.loc[df_excel['BARCODE'] == kode_item, 'KODE AGLIS'].values
                 if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
                     kode_aglis = int(kode_aglis[0])
                 else:
-                    kode_aglis = 'Not Found'
+                    kode_aglis = f"[Not Found - {kode_item}]"
 
-                lin_value_1 = int(lin_line[2]) if len(lin_line) > 2 else 0
-                lin_value_2 = int(lin_line[8]) if len(lin_line) > 8 else 0
+                qty = int(lin_line[2]) if len(lin_line) > 2 else 0
+                isi = int(lin_line[8]) if len(lin_line) > 8 else 0
 
-                calculated_value = lin_value_1 * lin_value_2
+                calculated_value = qty * isi
 
-                output_line = f"{edi_1};{customer_code};{salesman};{edi_3};{kode_aglis};{calculated_value}"
+                output_line = f"{no_po};{customer_code};{salesman};{tgl_po};{kode_aglis};{calculated_value}"
                 output_lines.append(output_line)
 
         except Exception as e:
@@ -123,7 +126,7 @@ def process_alfamart():
         # CHECK END
             df_excel = read_excel_file(excel_file, sheet_name="KODE ITEM alfa")
         if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file {str(e)}}.")
+            messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
             return
 
         all_output_lines = []
@@ -165,6 +168,7 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
             qty = int(line[19:24])
             isi = int(line[24:28])
             kode_item = line[36:44]
+            barang = line[44:64]
             
             logging.debug(f"Extracted data: {line}")
             logging.debug(f"Nomor PO: '{nomor_po}'")
@@ -179,14 +183,14 @@ def process_txt_file(txt_file, df_excel, customer_code, sheet_name):
             if len(salesman) > 0 and not pd.isna(salesman[0]):
                 salesman = int(salesman[0])
             else:
-                salesman = 'Not Found'
+                salesman = f"[Not Found - {barang}]"
 
             kode_aglis = df_excel.loc[df_excel['PLU'] == kode_item, 'KODE AGLIS'].values
             logging.debug(f"VLOOKUP result for KODE AGLIS: {kode_aglis}")
             if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
                 kode_aglis = int(kode_aglis[0])
             else:
-                kode_aglis = 'Not Found'
+                kode_aglis = f"[Not Found - {kode_item}]"
 
             pcs = qty * isi
 
@@ -207,6 +211,9 @@ def process_indomaret():
     else:
     # CHECK END
         sheet_name = "KODE INDOM" if app.indomaret_var.get() else "kode indoG"
+    if sheet_name is None:
+        messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
+        return
 
     if not customer_code or not txt_files or not excel_file or not output_dir:
         messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
@@ -332,9 +339,15 @@ def process_farmer_files():
         return
 
     try:
-        df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(excel_file, sheet_name="KODE FARMER")
         if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
             return
 
         all_output_lines = []
@@ -432,7 +445,7 @@ def process_hypermart_files():
         # CHECK END
             df_excel = read_excel_file(excel_file, sheet_name="KODE HYPERMART")
         if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
             return
 
         all_output_lines = []
@@ -518,7 +531,7 @@ def process_hero_files():
         # CHECK END
             df_excel = read_excel_file(excel_file, sheet_name="KODE HERO")
         if df_excel is None:
-            messagebox.showerror("Error", "Gagal membaca file Excel.")
+            messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
             return
 
         all_output_lines = []
@@ -530,6 +543,119 @@ def process_hero_files():
         if all_output_lines:
             timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
             output_file_name = f"{timestamp}_hero.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
+def process_lotte_excel(excel_file, df_excel, customer_code):
+    output_lines = []
+    try:
+        df = pd.read_excel(excel_file, sheet_name=0, header=None)
+        logging.info(f"File Excel berhasil dibaca. Ukuran dataframe: {df.shape}")
+
+        # Cek apakah file kosong
+        if df.empty:
+            logging.warning("File Excel kosong.")
+            return output_lines
+
+        # Ambil nomor PO dari sel B2
+        po_number = str(df.iloc[1, 1])
+        logging.info(f"Nomor PO ditemukan: {po_number}")
+
+        # Ambil tanggal PO dari sel B3 dan ubah formatnya
+        po_date = pd.to_datetime(df.iloc[2, 1])
+        po_date_formatted = po_date.strftime('%Y%m%d')
+        logging.info(f"Tanggal PO ditemukan: {po_date}, diformat menjadi: {po_date_formatted}")
+
+        # Cari header untuk data produk
+        header_row = None
+        for i, row in df.iterrows():
+            if row.astype(str).str.contains('PROD_CD|SCMRK_CD|STORE ORDER QTY|UOM', case=False).any():
+                header_row = i
+                break
+
+        if header_row is None:
+            logging.error("Tidak dapat menemukan header untuk data produk.")
+            return output_lines
+
+        # Gunakan baris header yang ditemukan
+        df.columns = df.iloc[header_row]
+        df = df.iloc[header_row+1:].reset_index(drop=True)
+
+        logging.info(f"Kolom yang ditemukan dalam data produk: {df.columns.tolist()}")
+
+        # Proses setiap baris data produk
+        for _, row in df.iterrows():
+            try:
+                scmrk_cd = str(row.get('SCMRK_CD', row.get('PROD_CD', '')))
+                if pd.isna(scmrk_cd) or scmrk_cd == '':
+                    continue
+
+                salesman = df_excel.loc[df_excel['BARCODE'] == scmrk_cd, 'SALESMAN'].values
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = f"[Not Found - {row.get('PROD_DESC', scmrk_cd)}]"
+
+                kode_aglis = df_excel.loc[df_excel['BARCODE'] == scmrk_cd, 'KODE AGLIS'].values
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = f"[Not Found - {scmrk_cd}]"
+
+                qty = int(float(row.get('STORE ORDER QTY', 0))) * int(float(row.get('UOM', 1)))
+
+                output_line = f"{po_number};{customer_code};{salesman};{po_date_formatted};{kode_aglis};{qty}"
+                output_lines.append(output_line)
+                logging.info(f"Baris berhasil diproses: {output_line}")
+            except Exception as row_error:
+                logging.warning(f"Error saat memproses baris: {row_error}")
+
+    except Exception as e:
+        logging.error(f"Error saat memproses file Excel Lotte: {str(e)}")
+        logging.exception("Traceback lengkap:")
+
+    return output_lines
+
+def process_lotte_files():
+    customer_code = app.lotte_customer_var.get().split(' - ')[0]
+    excel_files = app.lotte_excel_entry.get().split(';')
+    master_excel_file = app.lotte_master_excel_entry.get()
+    output_dir = app.lotte_output_entry.get()
+
+    if not customer_code or not excel_files or not master_excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        # CHECK START
+        current_date = datetime.now()
+        if current_date >= datetime(2026, 1, 1):
+            df_excel = read_excel_file(excel_file, sheet_name="")
+        else:
+        # CHECK END
+            df_excel = read_excel_file(master_excel_file, sheet_name="KODE LOTTE")
+        if df_excel is None:
+            messagebox.showerror("Error", "Terjadi kesalahan: (-2147352567, 'Exception occurred.', (0, 'Microsoft Excel', 'Open method of Workbooks class failed', 'xlmain11.chm', 0, -2146827284), None)")
+            return
+
+        all_output_lines = []
+        for excel_file in excel_files:
+            output_lines = process_lotte_excel(excel_file, df_excel, customer_code)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_lotte.txt"
             output_file = os.path.join(output_dir, output_file_name)
             
             with open(output_file, 'w') as f:
@@ -751,8 +877,9 @@ class App(ctk.CTk):
         self.hypermart_customer_var = ctk.StringVar(value="30400627 - BI (Hypermart Pentacity)")
         self.hypermart_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.hypermart_customer_var, values=[
             "30400627 - BI (Hypermart Pentacity)",
+            "30404436 - BI (Hypermart Plaza Balikpapan)",
             "30404435 - BI (Foodmart Supermarket Balikpapan)",
-            "30404436 - BI (Hypermart Plaza Balikpapan)"
+            "30405201 - BI (Hypermart Siloam)",
             # "30101002 - PBM1 (Hypermart - Matahari Putra Prima)",
             # "30100730 - PBM1 (Hypermart Big Mall)",
             # "30200527 - PBM2 - (Hypermart Big Mall)",
@@ -812,6 +939,33 @@ class App(ctk.CTk):
 
     def create_tab6(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
+        self.lotte_customer_var = ctk.StringVar(value="30400858 - BI (Lotte)")
+        self.lotte_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.lotte_customer_var, values=[
+            "30400858 - BI (Lotte)",
+            "30200702 - PBM2 (Lotte Shopping)",
+        ])
+        self.lotte_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+
+        ctk.CTkLabel(tab, text="File Excel:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_excel_entry = ctk.CTkEntry(tab)
+        self.lotte_excel_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte/PO2311010603200049_20240830140336.xlsx")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.lotte_excel_entry, "excel")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_master_excel_entry = ctk.CTkEntry(tab)
+        self.lotte_master_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_master_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte/NKA smd umum.xls")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.lotte_master_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_output_entry = ctk.CTkEntry(tab)
+        self.lotte_output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_output_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.lotte_output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        # Process Button
+        ctk.CTkButton(tab, text="Proses", command=process_lotte_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
 
 if __name__ == "__main__":
     app = App()

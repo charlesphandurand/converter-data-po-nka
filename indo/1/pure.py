@@ -30,6 +30,8 @@ def read_excel_file(file_path, sheet_name):
             required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         elif sheet_name == "KODE HERO":
             required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
+        elif sheet_name == "KODE LOTTE":
+            required_columns = ["BARCODE", "KODE AGLIS", "SALESMAN"]
         else:
             logging.error(f"Sheet name tidak dikenal: {sheet_name}")
             return None
@@ -125,6 +127,113 @@ def process_hero_csv(csv_file, df_excel, customer_code):
 
     return output_lines
 
+def process_lotte_files():
+    customer_code = app.lotte_customer_var.get().split(' - ')[0]
+    excel_files = app.lotte_excel_entry.get().split(';')
+    master_excel_file = app.lotte_master_excel_entry.get()
+    output_dir = app.lotte_output_entry.get()
+
+    if not customer_code or not excel_files or not master_excel_file or not output_dir:
+        messagebox.showerror("Error", "Silakan pilih customer code dan semua file yang diperlukan.")
+        return
+
+    try:
+        df_master = read_excel_file(master_excel_file, sheet_name="KODE LOTTE")
+        if df_master is None:
+            messagebox.showerror("Error", "Gagal membaca file Excel master.")
+            return
+
+        all_output_lines = []
+        for excel_file in excel_files:
+            output_lines = process_lotte_excel(excel_file, df_master, customer_code)
+            if output_lines:
+                all_output_lines.extend(output_lines)
+
+        if all_output_lines:
+            timestamp = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
+            output_file_name = f"{timestamp}_lotte.txt"
+            output_file = os.path.join(output_dir, output_file_name)
+            
+            with open(output_file, 'w') as f:
+                f.write('\n'.join(all_output_lines))
+            messagebox.showinfo("Sukses", f"Konversi berhasil! File output: {output_file}")
+        else:
+            messagebox.showwarning("Peringatan", "Tidak ada data yang diproses.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+    
+    print("Silakan periksa console untuk log detail.")
+
+def process_lotte_excel(excel_file, df_master, customer_code):
+    output_lines = []
+    try:
+        df = pd.read_excel(excel_file, sheet_name=0, header=None)
+        logging.info(f"File Excel berhasil dibaca. Ukuran dataframe: {df.shape}")
+
+        # Cek apakah file kosong
+        if df.empty:
+            logging.warning("File Excel kosong.")
+            return output_lines
+
+        # Ambil nomor PO dari sel B2
+        po_number = str(df.iloc[1, 1])
+        logging.info(f"Nomor PO ditemukan: {po_number}")
+
+        # Ambil tanggal PO dari sel B3 dan ubah formatnya
+        po_date = pd.to_datetime(df.iloc[2, 1])
+        po_date_formatted = po_date.strftime('%Y%m%d')
+        logging.info(f"Tanggal PO ditemukan: {po_date}, diformat menjadi: {po_date_formatted}")
+
+        # Cari header untuk data produk
+        header_row = None
+        for i, row in df.iterrows():
+            if row.astype(str).str.contains('PROD_CD|SCMRK_CD|STORE ORDER QTY|UOM', case=False).any():
+                header_row = i
+                break
+
+        if header_row is None:
+            logging.error("Tidak dapat menemukan header untuk data produk.")
+            return output_lines
+
+        # Gunakan baris header yang ditemukan
+        df.columns = df.iloc[header_row]
+        df = df.iloc[header_row+1:].reset_index(drop=True)
+
+        logging.info(f"Kolom yang ditemukan dalam data produk: {df.columns.tolist()}")
+
+        # Proses setiap baris data produk
+        for _, row in df.iterrows():
+            try:
+                scmrk_cd = str(row.get('SCMRK_CD', row.get('PROD_CD', '')))
+                if pd.isna(scmrk_cd) or scmrk_cd == '':
+                    continue
+
+                salesman = df_master.loc[df_master['BARCODE'] == scmrk_cd, 'SALESMAN'].values
+                if len(salesman) > 0 and not pd.isna(salesman[0]):
+                    salesman = int(salesman[0])
+                else:
+                    salesman = f"[Not Found - {row.get('PROD_DESC', scmrk_cd)}]"
+
+                kode_aglis = df_master.loc[df_master['BARCODE'] == scmrk_cd, 'KODE AGLIS'].values
+                if len(kode_aglis) > 0 and not pd.isna(kode_aglis[0]):
+                    kode_aglis = int(kode_aglis[0])
+                else:
+                    kode_aglis = f"[Not Found - {scmrk_cd}]"
+
+                qty = int(float(row.get('STORE ORDER QTY', 0))) * int(float(row.get('UOM', 1)))
+
+                output_line = f"{po_number};{customer_code};{salesman};{po_date_formatted};{kode_aglis};{qty}"
+                output_lines.append(output_line)
+                logging.info(f"Baris berhasil diproses: {output_line}")
+            except Exception as row_error:
+                logging.warning(f"Error saat memproses baris: {row_error}")
+
+    except Exception as e:
+        logging.error(f"Error saat memproses file Excel Lotte: {str(e)}")
+        logging.exception("Traceback lengkap:")
+
+    return output_lines
+
 def browse_files(entry, file_type):
     if file_type == "excel":
         filetypes = [("Excel files", "*.xls *.xlsx")]
@@ -181,7 +290,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(self, text="\xa9 2024 by Charles Phandurand, Converter Data PO v1.0").grid(row=1, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="ew")
 
-        tab1 = tabview.add("Farmer")
+        tab1 = tabview.add("Lotte")
         tab2 = tabview.add("Hero")
         
         tab1.grid_columnconfigure(1, weight=1)
@@ -192,6 +301,33 @@ class App(ctk.CTk):
 
     def create_tab1(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
+        self.lotte_customer_var = ctk.StringVar(value="30400858 - BI (Lotte)")
+        self.lotte_customer_dropdown = ctk.CTkOptionMenu(tab, variable=self.lotte_customer_var, values=[
+            "30400858 - BI (Lotte)",
+            "30200702 - PBM2 (Lotte Shopping)",
+        ])
+        self.lotte_customer_dropdown.grid(row=0, column=1, padx=10, pady=(20, 10), sticky="ew")
+
+        ctk.CTkLabel(tab, text="File Excel:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_excel_entry = ctk.CTkEntry(tab)
+        self.lotte_excel_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte/PO2311010603200049_20240830140336.xlsx")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.lotte_excel_entry, "excel")).grid(row=1, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="File Excel Master Data:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_master_excel_entry = ctk.CTkEntry(tab)
+        self.lotte_master_excel_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_master_excel_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte/NKA smd umum.xls")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_files(self.lotte_master_excel_entry, "excel")).grid(row=2, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        ctk.CTkLabel(tab, text="Direktori Output:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.lotte_output_entry = ctk.CTkEntry(tab)
+        self.lotte_output_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.lotte_output_entry.insert(0, "C:/Users/TOSHIBA PORTEGE Z30C/Desktop/program python/lotte")
+        ctk.CTkButton(tab, text="Browse", command=lambda: browse_directory(self.lotte_output_entry)).grid(row=3, column=2, padx=(0, 20), pady=10, sticky="e")
+
+        # Process Button
+        ctk.CTkButton(tab, text="Proses", command=process_lotte_files).grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 10), sticky="ew")
         
     def create_tab2(self, tab):
         ctk.CTkLabel(tab, text="Customer Code:").grid(row=0, column=0, padx=10, pady=(20, 10), sticky="w")
